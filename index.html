@@ -255,7 +255,10 @@ textarea.res:focus{border-color:var(--border2)}
     </div>
     <div style="display:flex;flex-direction:column;gap:16px">
       <div class="card">
-        <div class="card-title" style="margin-bottom:12px">Cronômetro</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div class="card-title" style="margin-bottom:0">Cronômetro</div>
+        <button onclick="openManualModal()" style="font-family:'DM Sans',sans-serif;font-size:12px;padding:5px 12px;border-radius:var(--r-xs);border:1px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer">+ Sessão manual</button>
+      </div>
         <div class="timer-wrap">
           <div class="timer-book-name" id="timer-book-name">Selecione um livro ao lado</div>
           <div class="timer-display" id="timer-display">00:00:00</div>
@@ -352,9 +355,9 @@ const COVERS={
 };
 
 const DEFAULT_BOOKS=[
-  {id:1,title:"Mistborn: O Império Final",author:"Brandon Sanderson",year:2026,totalChaps:38,currentChap:38,pages:432,status:"concluído",nota:null,genre:"Fantasia",cover:"",sessions:[{date:"23/02/2026",dur:70,note:""},{date:"24/02/2026",dur:45,note:""},{date:"25/02/2026",dur:51,note:""},{date:"26/02/2026",dur:25,note:""},{date:"27/02/2026",dur:53,note:""},{date:"28/02/2026",dur:70,note:""},{date:"01/03/2026",dur:15,note:""},{date:"02/03/2026",dur:57,note:""},{date:"03/03/2026",dur:63,note:""},{date:"04/03/2026",dur:48,note:""},{date:"05/03/2026",dur:50,note:""},{date:"06/03/2026",dur:62,note:""},{date:"07/03/2026",dur:137,note:""},{date:"08/03/2026",dur:145,note:""},{date:"09/03/2026",dur:116,note:""},{date:"10/03/2026",dur:53,note:""},{date:"11/03/2026",dur:55,note:""},{date:"12/03/2026",dur:92,note:""},{date:"13/03/2026",dur:73,note:""},{date:"14/03/2026",dur:172,note:""}],resenha:"",chapters:[]},
-  {id:2,title:"O Poço da Ascensão",author:"Brandon Sanderson",year:2026,totalChaps:59,currentChap:59,pages:590,status:"concluído",nota:null,genre:"Fantasia",cover:"",sessions:[{date:"15/03/2026",dur:84,note:""},{date:"16/03/2026",dur:47,note:""},{date:"17/03/2026",dur:99,note:""},{date:"18/03/2026",dur:58,note:""},{date:"19/03/2026",dur:75,note:""},{date:"20/03/2026",dur:103,note:""},{date:"21/03/2026",dur:131,note:""},{date:"22/03/2026",dur:128,note:""},{date:"23/03/2026",dur:58,note:""},{date:"24/03/2026",dur:46,note:""},{date:"25/03/2026",dur:49,note:""},{date:"26/03/2026",dur:45,note:""},{date:"27/03/2026",dur:70,note:""},{date:"28/03/2026",dur:57,note:""},{date:"29/03/2026",dur:62,note:""},{date:"30/03/2026",dur:82,note:""},{date:"31/03/2026",dur:96,note:""},{date:"01/04/2026",dur:155,note:""},{date:"02/04/2026",dur:172,note:""},{date:"04/04/2026",dur:41,note:""},{date:"05/04/2026",dur:55,note:""},{date:"06/04/2026",dur:98,note:""},{date:"07/04/2026",dur:92,note:""},{date:"08/04/2026",dur:199,note:""}],resenha:"",chapters:[]},
-  {id:3,title:"O Herói das Eras",author:"Brandon Sanderson",year:2026,totalChaps:82,currentChap:82,pages:724,status:"concluído",nota:null,genre:"Fantasia",cover:"",sessions:[{date:"09/04/2026",dur:42,note:""},{date:"11/04/2026",dur:68,note:""},{date:"12/04/2026",dur:90,note:""},{date:"13/04/2026",dur:111,note:""},{date:"14/04/2026",dur:116,note:""},{date:"15/04/2026",dur:65,note:""},{date:"16/04/2026",dur:110,note:""},{date:"17/04/2026",dur:88,note:""},{date:"18/04/2026",dur:45,note:""},{date:"20/04/2026",dur:51,note:""},{date:"21/04/2026",dur:145,note:""},{date:"22/04/2026",dur:149,note:""},{date:"23/04/2026",dur:256,note:""},{date:"24/04/2026",dur:151,note:""},{date:"25/04/2026",dur:214,note:""},{date:"26/04/2026",dur:159,note:""},{date:"27/04/2026",dur:90,note:""},{date:"28/04/2026",dur:82,note:""},{date:"29/04/2026",dur:86,note:""},{date:"30/04/2026",dur:73,note:""},{date:"01/05/2026",dur:128,note:""}],resenha:"",chapters:[]}
+  {id:1,title:"Mistborn: O Império Final",author:"Brandon Sanderson",year:2026,totalChaps:38,currentChap:38,pages:715,status:"concluído",nota:null,genre:"Fantasia",cover:"",sessions:[{date:"23/02/2026",dur:70,note:""},{date:"24/02/2026",dur:45,note:""},{date:"25/02/2026",dur:51,note:""},{date:"26/02/2026",dur:25,note:""},{date:"27/02/2026",dur:53,note:""},{date:"28/02/2026",dur:70,note:""},{date:"01/03/2026",dur:15,note:""},{date:"02/03/2026",dur:57,note:""},{date:"03/03/2026",dur:63,note:""},{date:"04/03/2026",dur:48,note:""},{date:"05/03/2026",dur:50,note:""},{date:"06/03/2026",dur:62,note:""},{date:"07/03/2026",dur:137,note:""},{date:"08/03/2026",dur:145,note:""},{date:"09/03/2026",dur:116,note:""},{date:"10/03/2026",dur:53,note:""},{date:"11/03/2026",dur:55,note:""},{date:"12/03/2026",dur:92,note:""},{date:"13/03/2026",dur:73,note:""},{date:"14/03/2026",dur:172,note:""}],resenha:"",chapters:[]},
+  {id:2,title:"O Poço da Ascensão",author:"Brandon Sanderson",year:2026,totalChaps:59,currentChap:59,pages:855,status:"concluído",nota:null,genre:"Fantasia",cover:"",sessions:[{date:"15/03/2026",dur:84,note:""},{date:"16/03/2026",dur:47,note:""},{date:"17/03/2026",dur:99,note:""},{date:"18/03/2026",dur:58,note:""},{date:"19/03/2026",dur:75,note:""},{date:"20/03/2026",dur:103,note:""},{date:"21/03/2026",dur:131,note:""},{date:"22/03/2026",dur:128,note:""},{date:"23/03/2026",dur:58,note:""},{date:"24/03/2026",dur:46,note:""},{date:"25/03/2026",dur:49,note:""},{date:"26/03/2026",dur:45,note:""},{date:"27/03/2026",dur:70,note:""},{date:"28/03/2026",dur:57,note:""},{date:"29/03/2026",dur:62,note:""},{date:"30/03/2026",dur:82,note:""},{date:"31/03/2026",dur:96,note:""},{date:"01/04/2026",dur:155,note:""},{date:"02/04/2026",dur:172,note:""},{date:"04/04/2026",dur:41,note:""},{date:"05/04/2026",dur:55,note:""},{date:"06/04/2026",dur:98,note:""},{date:"07/04/2026",dur:92,note:""},{date:"08/04/2026",dur:199,note:""}],resenha:"",chapters:[]},
+  {id:3,title:"O Herói das Eras",author:"Brandon Sanderson",year:2026,totalChaps:82,currentChap:82,pages:795,status:"concluído",nota:null,genre:"Fantasia",cover:"",sessions:[{date:"09/04/2026",dur:42,note:""},{date:"11/04/2026",dur:68,note:""},{date:"12/04/2026",dur:90,note:""},{date:"13/04/2026",dur:111,note:""},{date:"14/04/2026",dur:116,note:""},{date:"15/04/2026",dur:65,note:""},{date:"16/04/2026",dur:110,note:""},{date:"17/04/2026",dur:88,note:""},{date:"18/04/2026",dur:45,note:""},{date:"20/04/2026",dur:51,note:""},{date:"21/04/2026",dur:145,note:""},{date:"22/04/2026",dur:149,note:""},{date:"23/04/2026",dur:256,note:""},{date:"24/04/2026",dur:151,note:""},{date:"25/04/2026",dur:214,note:""},{date:"26/04/2026",dur:159,note:""},{date:"27/04/2026",dur:90,note:""},{date:"28/04/2026",dur:82,note:""},{date:"29/04/2026",dur:86,note:""},{date:"30/04/2026",dur:73,note:""},{date:"01/05/2026",dur:128,note:""}],resenha:"",chapters:[]}
 ];
 
 /* ── PERSISTÊNCIA ── */
@@ -773,6 +776,45 @@ function importData(e){
   reader.readAsText(file);
   e.target.value="";
 }
+function openManualModal(){
+  // populate book selector
+  const sel = document.getElementById("man-book");
+  sel.innerHTML = books.map(b=>`<option value="${b.id}">${b.title}</option>`).join("");
+  // default date = today
+  const t = new Date();
+  document.getElementById("man-date").value = t.getFullYear()+"-"+String(t.getMonth()+1).padStart(2,"0")+"-"+String(t.getDate()).padStart(2,"0");
+  document.getElementById("man-hours").value = 0;
+  document.getElementById("man-mins").value = 30;
+  document.getElementById("man-note").value = "";
+  document.getElementById("modal-manual").classList.add("open");
+}
+function closeManualModal(){
+  document.getElementById("modal-manual").classList.remove("open");
+}
+function saveManualSession(){
+  const bookId = parseInt(document.getElementById("man-book").value);
+  const dateVal = document.getElementById("man-date").value; // YYYY-MM-DD
+  const h = parseInt(document.getElementById("man-hours").value)||0;
+  const m = parseInt(document.getElementById("man-mins").value)||0;
+  const note = document.getElementById("man-note").value.trim();
+  if(!dateVal){ alert("Selecione uma data."); return; }
+  if(h===0 && m===0){ alert("Informe pelo menos 1 minuto."); return; }
+  const totalMins = h*60 + m;
+  // Convert YYYY-MM-DD to DD/MM/YYYY
+  const [y,mo,d] = dateVal.split("-");
+  const dateStr = d+"/"+mo+"/"+y;
+  const b = books.find(x=>x.id===bookId);
+  const existing = b.sessions.find(s=>s.date===dateStr);
+  if(existing){
+    existing.dur += totalMins;
+    if(note && note!==existing.note) existing.note = existing.note ? existing.note+" · "+note : note;
+  } else {
+    b.sessions.push({date:dateStr, dur:totalMins, note});
+  }
+  closeManualModal();
+  updateTopStats(); renderHistory(); renderAndamento(); saveData();
+}
+
 function zeroData(){
   document.getElementById('modal-zero').classList.add('open');
 }
