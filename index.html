@@ -190,6 +190,33 @@ textarea.res:focus{border-color:var(--border2)}
 ::-webkit-scrollbar{width:5px;height:5px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+
+@media print{
+  .topbar,.tabs,.shelf-top,.resumo-overlay,.overlay,.save-ind,
+  #print-btn-area,button{display:none!important}
+  .page{display:none!important}
+  #print-view{display:block!important}
+  body{background:#fff;color:#000;font-size:12pt}
+  .pv-book{page-break-after:always;padding:40px 60px}
+  .pv-book:last-child{page-break-after:auto}
+}
+#print-view{display:none;padding:40px 60px;max-width:800px;margin:0 auto;font-family:'EB Garamond',Georgia,serif}
+.pv-book{margin-bottom:60px;padding-bottom:40px;border-bottom:2px solid var(--border)}
+.pv-book:last-child{border-bottom:none}
+.pv-book-header{display:flex;gap:20px;align-items:flex-start;margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid var(--border)}
+.pv-cover{width:80px;height:115px;object-fit:cover;border-radius:4px;box-shadow:var(--shadow);flex-shrink:0}
+.pv-cover-ph{width:80px;height:115px;border-radius:4px;background:var(--surface2);flex-shrink:0}
+.pv-book-title{font-family:'Lora',serif;font-size:22px;margin-bottom:4px;color:var(--text)}
+.pv-book-meta{font-size:13px;color:var(--text3);margin-bottom:8px}
+.pv-book-nota{font-size:13px;color:var(--amber);font-weight:500}
+.pv-section-title{font-family:'Lora',serif;font-size:14px;color:var(--text);margin:20px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.pv-resenha{font-size:14px;line-height:1.8;color:var(--text2);font-style:italic;margin-bottom:20px}
+.pv-chapter{margin-bottom:18px}
+.pv-ch-title{font-family:'Lora',serif;font-size:13px;font-weight:600;color:var(--text);margin-bottom:5px}
+.pv-ch-text{font-size:13px;line-height:1.8;color:var(--text2)}
+.pv-empty{font-size:13px;color:var(--text3);font-style:italic}
+.pv-toolbar{position:fixed;bottom:24px;right:24px;display:flex;gap:10px;z-index:90}
+@media screen{#print-view.active{display:block}}
 </style>
 </head>
 <body>
@@ -219,6 +246,14 @@ textarea.res:focus{border-color:var(--border2)}
     <div class="tst"><div class="tst-n" id="ts-horas">0h</div><div class="tst-l">Horas lidas</div></div>
     <div class="tst"><div class="tst-n" id="ts-nota">—</div><div class="tst-l">Nota média</div></div>
   </div>
+</div>
+
+<div id="print-view">
+  <div class="pv-toolbar" id="print-btn-area">
+    <button onclick="closePrintView()" style="font-family:'DM Sans',sans-serif;font-size:13px;padding:8px 16px;border-radius:var(--r-xs);border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer">← Voltar</button>
+    <button onclick="window.print()" style="font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;padding:8px 16px;border-radius:var(--r-xs);border:none;background:var(--text);color:#fff;cursor:pointer">🖨️ Imprimir / Salvar PDF</button>
+  </div>
+  <div id="print-content"></div>
 </div>
 
 <div class="tabs">
@@ -943,6 +978,9 @@ function openPanel(id,tab){
     </div>`;
 
   document.getElementById("rp-resumo").innerHTML=`
+    <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+      <button onclick="openPrintView(${id})" style="font-family:'DM Sans',sans-serif;font-size:12px;padding:5px 12px;border-radius:var(--r-xs);border:1px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer">🖨️ Gerar PDF do livro</button>
+    </div>
     <div class="sec-hd">Resenha geral</div>
     <textarea class="res" style="min-height:160px" placeholder="Sua impressão geral sobre o livro…"
       onchange="saveResenha(${id},this.value)">${b.resenha||""}</textarea>`;
@@ -1010,6 +1048,38 @@ function addBook(){
   });
   closeAddModal();
   updateTopStats();populateFilters();renderShelf();renderAndamento();renderHistory();saveData();
+}
+
+/* ── PRINT VIEW ── */
+function openPrintView(bookId){
+  const booksToShow = bookId ? [books.find(x=>x.id===bookId)] : books.filter(b=>b.resenha||(b.chapters&&b.chapters.some(c=>c.summary)));
+  let html = booksToShow.map(b=>{
+    const c = cov(b);
+    const coverEl = c ? `<img class="pv-cover" src="${c}">` : `<div class="pv-cover-ph"></div>`;
+    const notaEl = b.nota!=null&&b.nota!=="" ? `<div class="pv-book-nota">Nota: ${b.nota}/10</div>` : "";
+    const resenhaEl = b.resenha ? `<div class="pv-section-title">Resenha</div><div class="pv-resenha">${b.resenha.replace(/\n/g,"<br>")}</div>` : "";
+    const capsWithSummary = (b.chapters||[]).filter(ch=>ch.summary);
+    const capsEl = capsWithSummary.length
+      ? `<div class="pv-section-title">Resumos por capítulo</div>`+capsWithSummary.map(ch=>`
+          <div class="pv-chapter">
+            <div class="pv-ch-title">Cap. ${ch.n}${ch.title?" — "+ch.title:""}</div>
+            <div class="pv-ch-text">${ch.summary.replace(/\n/g,"<br>")}</div>
+          </div>`).join("") : "";
+    const hasContent = b.resenha || capsWithSummary.length;
+    if(!hasContent && bookId) return `<div class="pv-book"><div class="pv-book-header">${coverEl}<div><div class="pv-book-title">${b.title}</div><div class="pv-book-meta">${b.author}${b.year?" · "+b.year:""}${b.genre?" · "+b.genre:""}</div>${notaEl}</div></div><div class="pv-empty">Nenhum resumo ou resenha registrado ainda.</div></div>`;
+    if(!hasContent) return "";
+    return `<div class="pv-book"><div class="pv-book-header">${coverEl}<div><div class="pv-book-title">${b.title}</div><div class="pv-book-meta">${b.author}${b.year?" · "+b.year:""}${b.genre?" · "+b.genre:""}</div>${notaEl}</div></div>${resenhaEl}${capsEl}</div>`;
+  }).join("");
+  document.getElementById("print-content").innerHTML = html;
+  document.getElementById("print-view").classList.add("active");
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+  document.getElementById("roverlay").classList.remove("open");
+  window.scrollTo(0,0);
+}
+function closePrintView(){
+  document.getElementById("print-view").classList.remove("active");
+  goTo("estante");
 }
 
 /* ── NAV ── */
@@ -1131,7 +1201,7 @@ onAuthStateChanged(auth, async user => {
       "<div style='font-family:Lora,serif;font-size:32px;color:var(--text);margin-bottom:6px'>Estante</div>" +
       "<div style='font-size:14px;color:var(--text3);margin-bottom:28px'>Sua biblioteca pessoal</div>" +
       "<button id='login-center-btn' style='display:flex;align-items:center;gap:10px;font-size:14px;font-weight:500;padding:11px 24px;border-radius:8px;border:1px solid var(--border);background:#fff;color:var(--text);cursor:pointer;font-family:DM Sans,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.08)'>" +
-      "<svg width='18' height='18' viewBox='0 0 24 24'><path fill='#4285F4' d='M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z'/><path fill='#34A853' d='M12 23c2.97 0 5.46-.98 7.aa 23 12 23z'/><path fill='#FBBC05' d='M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z'/><path fill='#EA4335' d='M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z'/></svg>" +
+      "<svg width='18' height='18' viewBox='0 0 24 24'><path fill='#4285F4' d='M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z'/><path fill='#34A853' d='M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z'/><path fill='#FBBC05' d='M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z'/><path fill='#EA4335' d='M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z'/></svg>" +
       "Entrar com Google</button>";
     document.getElementById("login-center-btn").addEventListener("click", ()=>{
       signInWithPopup(auth, new GoogleAuthProvider()).catch(e=>alert("Erro no login: "+e.message));
