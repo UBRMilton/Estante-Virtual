@@ -191,6 +191,38 @@ textarea.res:focus{border-color:var(--border2)}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
 
+.fmt-toolbar{display:flex;gap:4px;margin-bottom:4px}
+.fmt-btn{font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;width:26px;height:26px;border-radius:4px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.fmt-btn:hover{background:var(--surface2);border-color:var(--border2)}
+.fmt-wrap{display:flex;flex-direction:column}
+
+@media print{
+  .topbar,.tabs,.shelf-top,.resumo-overlay,.overlay,.save-ind,
+  #print-btn-area,button{display:none!important}
+  .page{display:none!important}
+  #print-view{display:block!important}
+  body{background:#fff;color:#000;font-size:12pt}
+  .pv-book{page-break-after:always;padding:40px 60px}
+  .pv-book:last-child{page-break-after:auto}
+}
+#print-view{display:none;padding:40px 60px;max-width:800px;margin:0 auto;font-family:'EB Garamond',Georgia,serif}
+.pv-book{margin-bottom:60px;padding-bottom:40px;border-bottom:2px solid var(--border)}
+.pv-book:last-child{border-bottom:none}
+.pv-book-header{display:flex;gap:20px;align-items:flex-start;margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid var(--border)}
+.pv-cover{width:80px;height:115px;object-fit:cover;border-radius:4px;box-shadow:var(--shadow);flex-shrink:0}
+.pv-cover-ph{width:80px;height:115px;border-radius:4px;background:var(--surface2);flex-shrink:0}
+.pv-book-title{font-family:'Lora',serif;font-size:22px;margin-bottom:4px;color:var(--text)}
+.pv-book-meta{font-size:13px;color:var(--text3);margin-bottom:8px}
+.pv-book-nota{font-size:13px;color:var(--amber);font-weight:500}
+.pv-section-title{font-family:'Lora',serif;font-size:14px;color:var(--text);margin:20px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.pv-resenha{font-size:14px;line-height:1.8;color:var(--text2);font-style:italic;margin-bottom:20px}
+.pv-chapter{margin-bottom:18px}
+.pv-ch-title{font-family:'Lora',serif;font-size:13px;font-weight:600;color:var(--text);margin-bottom:5px}
+.pv-ch-text{font-size:13px;line-height:1.8;color:var(--text2)}
+.pv-empty{font-size:13px;color:var(--text3);font-style:italic}
+.pv-toolbar{position:fixed;bottom:24px;right:24px;display:flex;gap:10px;z-index:90}
+@media screen{#print-view.active{display:block}}
+
 @media print{
   .topbar,.tabs,.shelf-top,.resumo-overlay,.overlay,.save-ind,
   #print-btn-area,button{display:none!important}
@@ -246,6 +278,14 @@ textarea.res:focus{border-color:var(--border2)}
     <div class="tst"><div class="tst-n" id="ts-horas">0h</div><div class="tst-l">Horas lidas</div></div>
     <div class="tst"><div class="tst-n" id="ts-nota">—</div><div class="tst-l">Nota média</div></div>
   </div>
+</div>
+
+<div id="print-view">
+  <div class="pv-toolbar" id="print-btn-area">
+    <button onclick="closePrintView()" style="font-family:'DM Sans',sans-serif;font-size:13px;padding:8px 16px;border-radius:var(--r-xs);border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer">← Voltar</button>
+    <button onclick="window.print()" style="font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;padding:8px 16px;border-radius:var(--r-xs);border:none;background:var(--text);color:#fff;cursor:pointer">🖨️ Imprimir / Salvar PDF</button>
+  </div>
+  <div id="print-content"></div>
 </div>
 
 <div id="print-view">
@@ -370,15 +410,17 @@ textarea.res:focus{border-color:var(--border2)}
 <div class="resumo-overlay" id="roverlay" onclick="closePanel(event)">
   <div class="resumo-panel">
     <div class="rp-head" id="rp-head"></div>
-    <div class="rp-tabs">
+    <div class="rp-tabs" style="flex-wrap:wrap">
       <div class="rp-tab active" onclick="switchRpTab('info')">Detalhes</div>
       <div class="rp-tab" onclick="switchRpTab('resumo')">Resumo</div>
       <div class="rp-tab" onclick="switchRpTab('caps')">Capítulos</div>
+      <div class="rp-tab" onclick="switchRpTab('notas')">Anotações pessoais</div>
     </div>
     <div class="rp-body">
       <div class="rp-pane active" id="rp-info"></div>
       <div class="rp-pane" id="rp-resumo"></div>
       <div class="rp-pane" id="rp-caps"></div>
+      <div class="rp-pane" id="rp-notas"></div>
     </div>
   </div>
 </div>
@@ -923,6 +965,7 @@ function saveEditBook(){
   b.genre=document.getElementById("e-genre").value||b.genre;
   b.status=document.getElementById("e-status").value;
   b.cover=document.getElementById("e-cover").value.trim();
+  if(!b.notas) b.notas="";
   closeEditModal();
   saveData();updateTopStats();populateFilters();renderShelf();renderAndamento();
   openPanel(_editBookId,"info");
@@ -996,8 +1039,15 @@ function openPanel(id,tab){
         </div>
       </div>
       <div class="ch-body" id="rch-${ch.n}">
-        <textarea class="res" style="min-height:75px" placeholder="Resumo…"
-          onchange="saveChSum(${id},${ch.n},this.value)">${ch.summary||""}</textarea>
+        <div class="fmt-wrap">
+          <div class="fmt-toolbar">
+            <button class="fmt-btn" onclick="fmt('bold','chta-${id}-${ch.n}')" title="Negrito"><b>N</b></button>
+            <button class="fmt-btn" onclick="fmt('italic','chta-${id}-${ch.n}')" title="Itálico"><i>I</i></button>
+            <button class="fmt-btn" onclick="fmt('underline','chta-${id}-${ch.n}')" title="Sublinhado"><u>S</u></button>
+          </div>
+          <textarea class="res" id="chta-${id}-${ch.n}" style="min-height:75px" placeholder="Resumo…"
+            onchange="saveChSum(${id},${ch.n},this.value)">${ch.summary||""}</textarea>
+        </div>
       </div>
     </div>`).join("");
   document.getElementById("rp-caps").innerHTML=`${chHtml}
@@ -1006,11 +1056,23 @@ function openPanel(id,tab){
       <button class="btn btn-sm" onclick="addChapter(${id})">+ Cap.</button>
     </div>`;
 
+  document.getElementById("rp-notas").innerHTML=`
+    <div class="fmt-wrap">
+      <div class="fmt-toolbar">
+        <button class="fmt-btn" onclick="fmt('bold','notas-ta-${id}')" title="Negrito"><b>N</b></button>
+        <button class="fmt-btn" onclick="fmt('italic','notas-ta-${id}')" title="Itálico"><i>I</i></button>
+        <button class="fmt-btn" onclick="fmt('underline','notas-ta-${id}')" title="Sublinhado"><u>S</u></button>
+      </div>
+      <textarea class="res" id="notas-ta-${id}" style="min-height:300px"
+        placeholder="Como este livro te tocou? O que foi melhor e pior? Anotações para releituras futuras…"
+        onchange="saveNotas(${id},this.value)">${b.notas||""}</textarea>
+    </div>`;
+
   switchRpTab(tab);
   document.getElementById("roverlay").classList.add("open");
 }
 function switchRpTab(name){
-  const tabs=["info","resumo","caps"];
+  const tabs=["info","resumo","caps","notas"];
   document.querySelectorAll(".rp-tab").forEach((t,i)=>t.classList.toggle("active",tabs[i]===name));
   document.querySelectorAll(".rp-pane").forEach((p,i)=>p.classList.toggle("active",tabs[i]===name));
 }
@@ -1044,7 +1106,7 @@ function addBook(){
     currentChap:0,genre:document.getElementById("m-genre").value||"",
     status:document.getElementById("m-status").value,
     nota:null,cover:document.getElementById("m-cover").value.trim(),
-    sessions:[],resenha:"",chapters:[]
+    sessions:[],resenha:"",notas:"",chapters:[]
   });
   closeAddModal();
   updateTopStats();populateFilters();renderShelf();renderAndamento();renderHistory();saveData();
@@ -1071,6 +1133,72 @@ function openPrintView(bookId){
     return `<div class="pv-book"><div class="pv-book-header">${coverEl}<div><div class="pv-book-title">${b.title}</div><div class="pv-book-meta">${b.author}${b.year?" · "+b.year:""}${b.genre?" · "+b.genre:""}</div>${notaEl}</div></div>${resenhaEl}${capsEl}</div>`;
   }).join("");
   document.getElementById("print-content").innerHTML = html;
+  document.getElementById("print-view").classList.add("active");
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+  document.getElementById("roverlay").classList.remove("open");
+  window.scrollTo(0,0);
+}
+function closePrintView(){
+  document.getElementById("print-view").classList.remove("active");
+  goTo("estante");
+}
+
+/* ── FORMAT TEXT ── */
+function fmt(cmd, taId){
+  const ta=document.getElementById(taId);if(!ta)return;
+  const s=ta.selectionStart,e=ta.selectionEnd,sel=ta.value.substring(s,e);
+  if(!sel)return;
+  const tags={bold:['**','**'],italic:['_','_'],underline:['<u>','</u>']};
+  const [o,c]=tags[cmd];
+  if(sel.startsWith(o)&&sel.endsWith(c)){
+    const inner=sel.slice(o.length,sel.length-c.length);
+    ta.value=ta.value.substring(0,s)+inner+ta.value.substring(e);
+    ta.setSelectionRange(s,s+inner.length);
+  }else{
+    const w=o+sel+c;
+    ta.value=ta.value.substring(0,s)+w+ta.value.substring(e);
+    ta.setSelectionRange(s,s+w.length);
+  }
+  ta.dispatchEvent(new Event('change'));ta.focus();
+}
+function renderFmt(text){
+  if(!text) return "";
+  // bold: **text**
+  var r = text;
+  var parts;
+  // bold
+  parts = r.split('**');
+  r = '';
+  for(var i=0;i<parts.length;i++){ r += i%2===1 ? '<strong>'+parts[i]+'</strong>' : parts[i]; }
+  // italic: _text_
+  parts = r.split('_');
+  r = '';
+  for(var i=0;i<parts.length;i++){ r += i%2===1 ? '<em>'+parts[i]+'</em>' : parts[i]; }
+  // underline: <u>text</u> — already HTML, keep as-is
+  // newlines
+  r = r.replace(/\n/g,'<br>');
+  return r;
+}
+function saveNotas(id,v){const b=books.find(x=>x.id===id);b.notas=v;saveData();}
+
+/* ── PRINT VIEW ── */
+function openPrintView(bookId){
+  const booksToShow=bookId?[books.find(x=>x.id===bookId)]:books.filter(b=>b.resenha||b.notas||(b.chapters&&b.chapters.some(c=>c.summary)));
+  let html=booksToShow.map(b=>{
+    const c=cov(b);
+    const coverEl=c?`<img class="pv-cover" src="${c}">`:`<div class="pv-cover-ph"></div>`;
+    const notaEl=b.nota!=null&&b.nota!==""?`<div class="pv-book-nota">Nota: ${b.nota}/10</div>`:"";
+    const resenhaEl=b.resenha?`<div class="pv-section-title">Resenha</div><div class="pv-resenha">${renderFmt(b.resenha)}</div>`:"";
+    const notasEl=b.notas?`<div class="pv-section-title">Anotações pessoais</div><div class="pv-resenha">${renderFmt(b.notas)}</div>`:"";
+    const capsWithSummary=(b.chapters||[]).filter(ch=>ch.summary);
+    const capsEl=capsWithSummary.length?`<div class="pv-section-title">Resumos por capítulo</div>`+capsWithSummary.map(ch=>`<div class="pv-chapter"><div class="pv-ch-title">Cap. ${ch.n}${ch.title?" — "+ch.title:""}</div><div class="pv-ch-text">${renderFmt(ch.summary)}</div></div>`).join(""):"";
+    const hasContent=b.resenha||b.notas||capsWithSummary.length;
+    if(!hasContent&&bookId)return`<div class="pv-book"><div class="pv-book-header">${coverEl}<div><div class="pv-book-title">${b.title}</div><div class="pv-book-meta">${b.author}${b.year?" · "+b.year:""}${b.genre?" · "+b.genre:""}</div>${notaEl}</div></div><div class="pv-empty">Nenhum resumo ou resenha registrado ainda.</div></div>`;
+    if(!hasContent)return"";
+    return`<div class="pv-book"><div class="pv-book-header">${coverEl}<div><div class="pv-book-title">${b.title}</div><div class="pv-book-meta">${b.author}${b.year?" · "+b.year:""}${b.genre?" · "+b.genre:""}</div>${notaEl}</div></div>${resenhaEl}${notasEl}${capsEl}</div>`;
+  }).join("");
+  document.getElementById("print-content").innerHTML=html;
   document.getElementById("print-view").classList.add("active");
   document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
   document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
