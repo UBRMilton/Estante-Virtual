@@ -38,7 +38,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
 .shelf-top{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:22px}
 .filter-lbl{font-size:12px;color:var(--text3);margin-right:2px}
 select.fsel{font-family:'DM Sans',sans-serif;font-size:12px;padding:6px 10px;border:1px solid var(--border);border-radius:var(--r-xs);background:var(--surface);color:var(--text);cursor:pointer;outline:none}
-.books-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:20px}
+.books-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:20px;align-items:start}
 .book-card{position:relative;display:flex;flex-direction:column}
 .book-thumb-wrap{position:relative;border-radius:var(--r-sm);overflow:hidden;box-shadow:var(--shadow);transition:box-shadow .2s,transform .2s cubic-bezier(.34,1.4,.64,1)}
 .book-card:hover .book-thumb-wrap{box-shadow:var(--shadow-md);transform:translateY(-5px)}
@@ -46,8 +46,8 @@ select.fsel{font-family:'DM Sans',sans-serif;font-size:12px;padding:6px 10px;bor
 .book-hover-overlay{position:absolute;inset:0;background:rgba(24,22,15,.52);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .18s}
 .book-card:hover .book-hover-overlay{opacity:1}
 .hover-btn{font-size:11px;font-weight:500;padding:6px 16px;border-radius:20px;background:var(--surface);color:var(--text);border:none;cursor:pointer;font-family:'DM Sans',sans-serif}
-.book-info{margin-top:8px}
-.book-title{font-size:12px;font-weight:500;line-height:1.4}
+.book-info{margin-top:8px;text-align:center}
+.book-title{font-size:12px;font-weight:500;line-height:1.4;min-height:2.8em;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-align:center}
 .book-author{font-size:11px;color:var(--text3);margin-top:1px}
 .book-tags{display:flex;gap:4px;margin-top:5px;flex-wrap:wrap;align-items:center}
 .tag{font-size:10px;padding:2px 7px;border-radius:20px;font-weight:500}
@@ -259,8 +259,25 @@ textarea.res:focus{border-color:var(--border2)}
   <div style="width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite"></div>
 </div>
 <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+<div id="loading-overlay" style="position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;gap:14px">
+  <div style="font-family:'Lora',serif;font-size:28px;color:var(--text)">Estante</div>
+  <div id="loading-msg" style="font-size:13px;color:var(--text3)">Carregando...</div>
+  <div style="width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite"></div>
+</div>
+<style>@keyframes spin{to{transform:rotate(360deg)}}</style>
 <div class="topbar">
   <span class="brand">Estante</span>
+  <div id="auth-area" style="display:flex;align-items:center;gap:10px">
+    <div id="user-info" style="display:none;align-items:center;gap:8px">
+      <img id="user-photo" style="width:28px;height:28px;border-radius:50%;border:1px solid var(--border)" src="" alt="">
+      <span id="user-name" style="font-size:12px;color:var(--text2)"></span>
+      <button id="btn-signout" style="font-size:11px;padding:3px 10px;border-radius:20px;border:1px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer;font-family:inherit">Sair</button>
+    </div>
+    <button id="btn-login" style="display:none;align-items:center;gap:6px;font-size:12px;font-weight:500;padding:5px 14px;border-radius:20px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;font-family:inherit">
+      <svg width="14" height="14" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+      Entrar com Google
+    </button>
+  </div>
   <div id="auth-area" style="display:flex;align-items:center;gap:10px">
     <div id="user-info" style="display:none;align-items:center;gap:8px">
       <img id="user-photo" style="width:28px;height:28px;border-radius:50%;border:1px solid var(--border)" src="" alt="">
@@ -316,6 +333,11 @@ textarea.res:focus{border-color:var(--border2)}
     <select class="fsel" id="f-author" onchange="renderShelf()"><option value="">Todos os autores</option></select>
     <select class="fsel" id="f-year" onchange="renderShelf()"><option value="">Todos os anos</option></select>
     <select class="fsel" id="f-genre" onchange="renderShelf()"><option value="">Todos os gêneros</option></select>
+    <select class="fsel" id="f-pages" onchange="renderShelf()">
+      <option value="">Páginas</option>
+      <option value="pages-desc">Mais páginas primeiro</option>
+      <option value="pages-asc">Menos páginas primeiro</option>
+    </select>
   </div>
   <div class="books-grid" id="books-grid"></div>
 </div>
@@ -465,8 +487,8 @@ const COVERS={
 };
 
 const DEFAULT_BOOKS=[
-  {id:1,title:"Mistborn: O Império Final",author:"Brandon Sanderson",year:2026,totalChaps:38,currentChap:38,pages:715,status:"concluído",nota:null,genre:"Fantasia",cover:"",sessions:[{date:"23/02/2026",dur:70,note:""},{date:"24/02/2026",dur:45,note:""},{date:"25/02/2026",dur:51,note:""},{date:"26/02/2026",dur:25,note:""},{date:"27/02/2026",dur:53,note:""},{date:"28/02/2026",dur:70,note:""},{date:"01/03/2026",dur:15,note:""},{date:"02/03/2026",dur:57,note:""},{date:"03/03/2026",dur:63,note:""},{date:"04/03/2026",dur:48,note:""},{date:"05/03/2026",dur:50,note:""},{date:"06/03/2026",dur:62,note:""},{date:"07/03/2026",dur:137,note:""},{date:"08/03/2026",dur:145,note:""},{date:"09/03/2026",dur:116,note:""},{date:"10/03/2026",dur:53,note:""},{date:"11/03/2026",dur:55,note:""},{date:"12/03/2026",dur:92,note:""},{date:"13/03/2026",dur:73,note:""},{date:"14/03/2026",dur:172,note:""}],resenha:"",chapters:[]},
-  {id:2,title:"O Poço da Ascensão",author:"Brandon Sanderson",year:2026,totalChaps:59,currentChap:59,pages:855,status:"concluído",nota:null,genre:"Fantasia",cover:"",sessions:[{date:"15/03/2026",dur:84,note:""},{date:"16/03/2026",dur:47,note:""},{date:"17/03/2026",dur:99,note:""},{date:"18/03/2026",dur:58,note:""},{date:"19/03/2026",dur:75,note:""},{date:"20/03/2026",dur:103,note:""},{date:"21/03/2026",dur:131,note:""},{date:"22/03/2026",dur:128,note:""},{date:"23/03/2026",dur:58,note:""},{date:"24/03/2026",dur:46,note:""},{date:"25/03/2026",dur:49,note:""},{date:"26/03/2026",dur:45,note:""},{date:"27/03/2026",dur:70,note:""},{date:"28/03/2026",dur:57,note:""},{date:"29/03/2026",dur:62,note:""},{date:"30/03/2026",dur:82,note:""},{date:"31/03/2026",dur:96,note:""},{date:"01/04/2026",dur:155,note:""},{date:"02/04/2026",dur:172,note:""},{date:"04/04/2026",dur:41,note:""},{date:"05/04/2026",dur:55,note:""},{date:"06/04/2026",dur:98,note:""},{date:"07/04/2026",dur:92,note:""},{date:"08/04/2026",dur:199,note:""}],resenha:"",chapters:[]},
+  {id:1,title:"Mistborn: O Império Final",author:"Brandon Sanderson",year:2026,totalChaps:38,currentChap:38,pages:715,status:"concluído",nota:9,genre:"Fantasia",cover:"",sessions:[{date:"23/02/2026",dur:70,note:""},{date:"24/02/2026",dur:45,note:""},{date:"25/02/2026",dur:51,note:""},{date:"26/02/2026",dur:25,note:""},{date:"27/02/2026",dur:53,note:""},{date:"28/02/2026",dur:70,note:""},{date:"01/03/2026",dur:15,note:""},{date:"02/03/2026",dur:57,note:""},{date:"03/03/2026",dur:63,note:""},{date:"04/03/2026",dur:48,note:""},{date:"05/03/2026",dur:50,note:""},{date:"06/03/2026",dur:62,note:""},{date:"07/03/2026",dur:137,note:""},{date:"08/03/2026",dur:145,note:""},{date:"09/03/2026",dur:116,note:""},{date:"10/03/2026",dur:53,note:""},{date:"11/03/2026",dur:55,note:""},{date:"12/03/2026",dur:92,note:""},{date:"13/03/2026",dur:73,note:""},{date:"14/03/2026",dur:172,note:""}],resenha:"",chapters:[]},
+  {id:2,title:"O Poço da Ascensão",author:"Brandon Sanderson",year:2026,totalChaps:59,currentChap:59,pages:855,status:"concluído",nota:9,genre:"Fantasia",cover:"",sessions:[{date:"15/03/2026",dur:84,note:""},{date:"16/03/2026",dur:47,note:""},{date:"17/03/2026",dur:99,note:""},{date:"18/03/2026",dur:58,note:""},{date:"19/03/2026",dur:75,note:""},{date:"20/03/2026",dur:103,note:""},{date:"21/03/2026",dur:131,note:""},{date:"22/03/2026",dur:128,note:""},{date:"23/03/2026",dur:58,note:""},{date:"24/03/2026",dur:46,note:""},{date:"25/03/2026",dur:49,note:""},{date:"26/03/2026",dur:45,note:""},{date:"27/03/2026",dur:70,note:""},{date:"28/03/2026",dur:57,note:""},{date:"29/03/2026",dur:62,note:""},{date:"30/03/2026",dur:82,note:""},{date:"31/03/2026",dur:96,note:""},{date:"01/04/2026",dur:155,note:""},{date:"02/04/2026",dur:172,note:""},{date:"04/04/2026",dur:41,note:""},{date:"05/04/2026",dur:55,note:""},{date:"06/04/2026",dur:98,note:""},{date:"07/04/2026",dur:92,note:""},{date:"08/04/2026",dur:199,note:""}],resenha:"",chapters:[]},
   {id:3,title:"O Herói das Eras",author:"Brandon Sanderson",year:2026,totalChaps:82,currentChap:82,pages:795,status:"concluído",nota:null,genre:"Fantasia",cover:"",sessions:[{date:"09/04/2026",dur:42,note:""},{date:"11/04/2026",dur:68,note:""},{date:"12/04/2026",dur:90,note:""},{date:"13/04/2026",dur:111,note:""},{date:"14/04/2026",dur:116,note:""},{date:"15/04/2026",dur:65,note:""},{date:"16/04/2026",dur:110,note:""},{date:"17/04/2026",dur:88,note:""},{date:"18/04/2026",dur:45,note:""},{date:"20/04/2026",dur:51,note:""},{date:"21/04/2026",dur:145,note:""},{date:"22/04/2026",dur:149,note:""},{date:"23/04/2026",dur:256,note:""},{date:"24/04/2026",dur:151,note:""},{date:"25/04/2026",dur:214,note:""},{date:"26/04/2026",dur:159,note:""},{date:"27/04/2026",dur:90,note:""},{date:"28/04/2026",dur:82,note:""},{date:"29/04/2026",dur:86,note:""},{date:"30/04/2026",dur:73,note:""},{date:"01/05/2026",dur:128,note:""}],resenha:"",chapters:[]}
 ];
 
@@ -581,6 +603,7 @@ function renderShelf(){
   const fY=document.getElementById("f-year").value;
   const fG=document.getElementById("f-genre").value;
   let done=books.filter(b=>b.status==="concluído");
+  const fP=document.getElementById("f-pages").value;
   if(fA)done=done.filter(b=>b.author===fA);
   if(fY)done=done.filter(b=>String(b.year)===String(fY));
   if(fG)done=done.filter(b=>b.genre===fG);
@@ -588,6 +611,8 @@ function renderShelf(){
   else if(fSort==="nota-desc")done.sort((a,b)=>(b.nota||0)-(a.nota||0));
   else if(fSort==="nota-asc")done.sort((a,b)=>(a.nota||0)-(b.nota||0));
   else if(fSort==="horas-desc")done.sort((a,b)=>bookMins(b)-bookMins(a));
+  if(fP==="pages-desc")done.sort((a,b)=>(b.pages||0)-(a.pages||0));
+  else if(fP==="pages-asc")done.sort((a,b)=>(a.pages||0)-(b.pages||0));
   const grid=document.getElementById("books-grid");
   let html=done.map(b=>{
     const c=cov(b);
@@ -602,8 +627,11 @@ function renderShelf(){
       </div>
       <div class="book-info">
         <div class="book-title">${b.title}</div>
-        <div class="book-author">${b.author}</div>
-        <div class="book-tags">${notaEl}${genreEl}${b.year?`<span class="tag tag-gray">${b.year}</span>`:""}</div>
+        <div style="display:flex;align-items:center;justify-content:center;margin-top:2px;gap:4px">
+          <div class="book-author">${b.author}</div>
+          ${b.nota!=null&&b.nota!==""?`<span style="color:var(--text3);font-size:11px">—</span><span class="nota-tag" style="flex-shrink:0">${b.nota}/10</span>`:""}
+        </div>
+        <div class="book-tags" style="margin-top:4px;justify-content:center">${genreEl}${b.pages?`<span class="tag tag-gray">${b.pages}p.</span>`:""}${b.year?`<span class="tag tag-gray">${b.year}</span>`:""}</div>
       </div>
     </div>`;
   }).join("");
@@ -727,70 +755,70 @@ function renderStats(){
     <div class="kpi"><div class="kpi-val">${donebooks.length}</div><div class="kpi-lbl">Livros concluídos</div><div class="kpi-sub">Nota média: ${notaMedia}</div></div>
   </div>`;
 
-  /* ── HEATMAP (ano atual) ── */
-  // monta mapa date->mins
-  const dateMap={};
-  allSess.forEach(s=>{dateMap[s.date]=(dateMap[s.date]||0)+s.dur;});
+  /* ── CALENDÁRIO MENSAL ── */
+  const MNAMES_CAL=["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+  const DNAMES=["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
+  const calYear = now.getFullYear();
 
-  // ano que o utilizador quer ver (padrão: ano atual)
-  const heatYear=now.getFullYear();
-  const MNAMES_HM=["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+  // build dateMap
+  const calDateMap={};
+  allSess.forEach(s=>{calDateMap[s.date]=(calDateMap[s.date]||0)+s.dur;});
 
-  // Para cada mês, gera as semanas/células
-  let hmMonthsHtml="";
+  let calHtml='';
   for(let mo=0;mo<12;mo++){
-    const firstDay=new Date(heatYear,mo,1);
-    const lastDay=new Date(heatYear,mo+1,0);
-    // colunas: cada coluna = 1 semana (dom–sab)
-    // começa no domingo anterior ou igual ao dia 1
-    const weekStart=new Date(firstDay);
-    weekStart.setDate(firstDay.getDate()-firstDay.getDay());
-    const cols=[];
-    let cur=new Date(weekStart);
-    while(cur<=lastDay){
-      const col=[];
-      for(let d=0;d<7;d++){
-        const dt=new Date(cur);dt.setDate(cur.getDate()+d);
-        const inMonth=dt.getMonth()===mo&&dt.getFullYear()===heatYear;
-        const future=dt>now;
-        const key=String(dt.getDate()).padStart(2,"0")+"/"+String(dt.getMonth()+1).padStart(2,"0")+"/"+dt.getFullYear();
-        const mins=inMonth?dateMap[key]||0:0;
-        let lv="";
-        if(inMonth&&!future){
-          if(mins>0&&mins<30)lv="lv1";
-          else if(mins>=30&&mins<60)lv="lv2";
-          else if(mins>=60&&mins<120)lv="lv3";
-          else if(mins>=120)lv="lv4";
-        }
-        col.push({key,mins,lv,inMonth,future});
+    const firstDay=new Date(calYear,mo,1);
+    const lastDay=new Date(calYear,mo+1,0);
+    const startDow=firstDay.getDay(); // 0=Sun
+    const totalDays=lastDay.getDate();
+    const monthTotal=Object.entries(calDateMap).filter(([k])=>{
+      const[d,m,y]=k.split('/');return +m-1===mo&&+y===calYear;
+    }).reduce((a,[,v])=>a+v,0);
+
+    let cells='';
+    // empty cells before first day
+    for(let i=0;i<startDow;i++) cells+=`<div></div>`;
+    // day cells
+    for(let d=1;d<=totalDays;d++){
+      const key=String(d).padStart(2,'0')+'/'+String(mo+1).padStart(2,'0')+'/'+calYear;
+      const mins=calDateMap[key]||0;
+      const dt=new Date(calYear,mo,d);
+      const future=dt>now;
+      let bg='transparent',txtColor='var(--text2)',fw='400';
+      if(!future && mins>0){
+        if(mins<30){bg='#c6e6d4';txtColor='#1e6641';}
+        else if(mins<60){bg='#7fc9a0';txtColor='#fff';}
+        else if(mins<120){bg='#3a9e6a';txtColor='#fff';}
+        else{bg='#1e6641';txtColor='#fff';fw='600';}
       }
-      cols.push(col);
-      cur.setDate(cur.getDate()+7);
+      const tooltip=mins>0?fmtDur(mins):'';
+      cells+=`<div style="aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:6px;background:${bg};opacity:${future?0.2:1};transition:transform .15s,box-shadow .15s;position:relative;z-index:1" ${!future?'onmouseenter="this.style.transform=\'scale(1.4)\';this.style.zIndex=10;this.style.boxShadow=\'0 4px 12px rgba(0,0,0,.2)\'" onmouseleave="this.style.transform=\'\';this.style.zIndex=1;this.style.boxShadow=\'\';"':''}>
+          <span style="font-size:11px;font-weight:${fw};color:${txtColor};line-height:1">${d}</span>
+          ${mins>0?`<span style="font-size:8px;color:${txtColor};opacity:.85;line-height:1;margin-top:1px">${fmtDur(mins)}</span>`:''}
+        </div>`;
     }
-    const colsH=cols.map(col=>`<div class="hm-col">${col.map(c=>{
-      const ghost=!c.inMonth||c.future;
-      return `<div class="hm-cell ${c.lv}" style="${ghost?"opacity:.15":""}" title="${c.inMonth&&!c.future?c.key+": "+(c.mins?fmtDur(c.mins):"nenhuma leitura"):""}"></div>`;
-    }).join("")}</div>`).join("");
-    hmMonthsHtml+=`<div style="display:flex;flex-direction:column;gap:4px;margin-right:10px">
-      <div style="font-size:10px;color:var(--text3);letter-spacing:.04em;margin-bottom:2px">${MNAMES_HM[mo]}</div>
-      <div style="display:flex;gap:3px">${colsH}</div>
+
+    calHtml+=`<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px;break-inside:avoid">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px">
+        <span style="font-family:'Lora',serif;font-size:14px;color:var(--text)">${MNAMES_CAL[mo]}</span>
+        ${monthTotal>0?`<span style="font-size:11px;color:var(--accent);font-weight:500">${fmtDur(monthTotal)}</span>`:'<span style="font-size:11px;color:var(--text3)">—</span>'}
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:6px">
+        ${DNAMES.map(d=>`<div style="text-align:center;font-size:9px;color:var(--text3);font-weight:500;padding:2px 0">${d}</div>`).join('')}
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px">${cells}</div>
     </div>`;
   }
 
   html+=`<div class="card">
-    <div class="stat-section-title">Mapa de leitura — ${heatYear}</div>
-    <div class="heatmap-wrap">
-      <div style="display:flex;flex-wrap:wrap;gap:0">${hmMonthsHtml}</div>
-      <div style="display:flex;align-items:center;gap:6px;margin-top:12px">
-        <span style="font-size:10px;color:var(--text3)">Menos</span>
-        <div style="width:11px;height:11px;border-radius:2px;background:var(--surface2)"></div>
-        <div style="width:11px;height:11px;border-radius:2px;background:#c6e6d4"></div>
-        <div style="width:11px;height:11px;border-radius:2px;background:#7fc9a0"></div>
-        <div style="width:11px;height:11px;border-radius:2px;background:#3a9e6a"></div>
-        <div style="width:11px;height:11px;border-radius:2px;background:#1e6641"></div>
-        <span style="font-size:10px;color:var(--text3)">Mais</span>
-      </div>
+    <div class="stat-section-title">Calendário de leitura — ${calYear}</div>
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:14px;flex-wrap:wrap">
+      <div style="width:12px;height:12px;border-radius:3px;background:var(--surface2);border:1px solid var(--border)"></div><span style="font-size:11px;color:var(--text3)">Sem leitura</span>
+      <div style="width:12px;height:12px;border-radius:3px;background:#c6e6d4"></div><span style="font-size:11px;color:var(--text3)">&lt;30m</span>
+      <div style="width:12px;height:12px;border-radius:3px;background:#7fc9a0"></div><span style="font-size:11px;color:var(--text3)">30–59m</span>
+      <div style="width:12px;height:12px;border-radius:3px;background:#3a9e6a"></div><span style="font-size:11px;color:var(--text3)">1–2h</span>
+      <div style="width:12px;height:12px;border-radius:3px;background:#1e6641"></div><span style="font-size:11px;color:var(--text3)">&gt;2h</span>
     </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px">${calHtml}</div>
   </div>`;
 
   /* ── GRÁFICOS ── */
@@ -922,7 +950,11 @@ function saveManualSession(){
     b.sessions.push({date:dateStr, dur:totalMins, note});
   }
   closeManualModal();
-  updateTopStats(); renderHistory(); renderAndamento(); saveData();
+  saveData();
+  updateTopStats();
+  populateFilters();
+  renderHistory();
+  renderAndamento();
 }
 
 function editChapter(bookId, n){
@@ -1224,6 +1256,31 @@ function goTo(name){
 /* ── INIT ── */
 updateTopStats();populateFilters();renderShelf();
 </script>
+<div class="overlay" id="modal-manual">
+  <div class="modal">
+    <h3>Adicionar sessão manual</h3>
+    <div class="fr"><label>Livro</label>
+      <select id="man-book"></select>
+    </div>
+    <div class="fr"><label>Data</label>
+      <input id="man-date" type="date" />
+    </div>
+    <div class="fr"><label>Horas</label>
+      <input id="man-hours" type="number" min="0" max="23" value="0" />
+    </div>
+    <div class="fr"><label>Minutos</label>
+      <input id="man-mins" type="number" min="0" max="59" value="30" />
+    </div>
+    <div class="fr"><label>Nota (opcional)</label>
+      <input id="man-note" placeholder="Ex: Caps. 5–7, viagem…" />
+    </div>
+    <div class="modal-btns">
+      <button class="btn" onclick="closeManualModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveManualSession()">Adicionar</button>
+    </div>
+  </div>
+</div>
+
 <div class="overlay" id="modal-zero">
   <div class="modal" style="width:320px">
     <h3 style="color:#c0392b">Zerar todos os dados</h3>
@@ -1236,6 +1293,107 @@ updateTopStats();populateFilters();renderShelf();
   </div>
 </div>
 
+<script type="module">
+import { initializeApp }   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut as fbSignOut }
+                            from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc }
+                            from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey:            "AIzaSyBWGEJ7vnEtwX6SKSwno4J7bocrAPxPhdY",
+  authDomain:        "estante-virtual-62841.firebaseapp.com",
+  projectId:         "estante-virtual-62841",
+  storageBucket:     "estante-virtual-62841.firebasestorage.app",
+  messagingSenderId: "400973444545",
+  appId:             "1:400973444545:web:89c1505866ac327c50eb40"
+};
+
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+
+let currentUser = null;
+let _saveTimer  = null;
+
+// ── Override saveData ──
+window._fbSave = async function(){
+  if(!currentUser) return;
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(async ()=>{
+    try{
+      await setDoc(doc(db,"usuarios",currentUser.uid), {books: window._getBooks(), nextId: window._getNextId()});
+      const el = document.getElementById("save-ind");
+      if(el){el.classList.add("show");clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove("show"),2000);}
+    }catch(e){ console.error("Erro ao salvar:",e); }
+  }, 800);
+};
+
+// ── Load from Firestore ──
+async function loadFromFirestore(){
+  try{
+    const snap = await getDoc(doc(db,"usuarios",currentUser.uid));
+    if(snap.exists()){
+      const d = snap.data();
+      window._setBooks(d.books || []);
+      window._setNextId(d.nextId || 4);
+    } else {
+      window._setBooks([]);
+      window._setNextId(4);
+    }
+  }catch(e){
+    console.error("Erro ao carregar:",e);
+    window._setBooks([]);
+    window._setNextId(4);
+  }
+}
+
+// ── Auth buttons ──
+document.getElementById("btn-login").addEventListener("click", ()=>{
+  signInWithPopup(auth, new GoogleAuthProvider()).catch(e=>alert("Erro no login: "+e.message));
+});
+document.getElementById("btn-signout").addEventListener("click", ()=>{
+  fbSignOut(auth);
+});
+
+// ── Auth state ──
+onAuthStateChanged(auth, async user => {
+  currentUser = user;
+  const overlay  = document.getElementById("loading-overlay");
+  const btnLogin = document.getElementById("btn-login");
+  const userInfo = document.getElementById("user-info");
+
+  if(user){
+    btnLogin.style.display = "none";
+    userInfo.style.display = "flex";
+    document.getElementById("user-name").textContent  = user.displayName || user.email;
+    if(user.photoURL) document.getElementById("user-photo").src = user.photoURL;
+
+    document.getElementById("loading-msg").textContent = "Carregando sua estante...";
+    await loadFromFirestore();
+    overlay.style.display = "none";
+
+    updateTopStats(); populateFilters(); renderShelf();
+  } else {
+    // Show login screen
+    userInfo.style.display = "none";
+    btnLogin.style.display = "flex";
+    window._setBooks([]);
+    window._setNextId(4);
+
+    overlay.style.display = "flex";
+    overlay.innerHTML =
+      "<div style='font-family:Lora,serif;font-size:32px;color:var(--text);margin-bottom:6px'>Estante</div>" +
+      "<div style='font-size:14px;color:var(--text3);margin-bottom:28px'>Sua biblioteca pessoal</div>" +
+      "<button id='login-center-btn' style='display:flex;align-items:center;gap:10px;font-size:14px;font-weight:500;padding:11px 24px;border-radius:8px;border:1px solid var(--border);background:#fff;color:var(--text);cursor:pointer;font-family:DM Sans,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.08)'>" +
+      "<svg width='18' height='18' viewBox='0 0 24 24'><path fill='#4285F4' d='M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z'/><path fill='#34A853' d='M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z'/><path fill='#FBBC05' d='M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z'/><path fill='#EA4335' d='M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z'/></svg>" +
+      "Entrar com Google</button>";
+    document.getElementById("login-center-btn").addEventListener("click", ()=>{
+      signInWithPopup(auth, new GoogleAuthProvider()).catch(e=>alert("Erro no login: "+e.message));
+    });
+  }
+});
+</script>
 <script type="module">
 import { initializeApp }   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut as fbSignOut }
