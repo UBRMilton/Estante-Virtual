@@ -496,10 +496,10 @@ const DEFAULT_BOOKS=[
 /* ── DATA LAYER (overridden by Firebase after load) ── */
 let books = [];
 let nextId = 4;
-window._getBooks = ()=>books;
-window._setBooks = (b)=>{books=b;};
-window._getNextId = ()=>nextId;
-window._setNextId = (n)=>{nextId=n;};
+window._getBooks = ()=>window._books||[];
+window._setBooks = (b)=>{window._books=b; books=b;};
+window._getNextId = ()=>window._nextId||4;
+window._setNextId = (n)=>{window._nextId=n; nextId=n;};
 let _saveTimer = null;
 
 function saveData(){
@@ -1372,9 +1372,14 @@ onAuthStateChanged(auth, async user => {
 
     document.getElementById("loading-msg").textContent = "Carregando sua estante...";
     await loadFromFirestore();
-    overlay.style.display = "none";
-
-    updateTopStats(); populateFilters(); renderShelf();
+    if(overlay) overlay.style.display = "none";
+    try{
+      updateTopStats(); populateFilters(); renderShelf();
+    }catch(e){
+      console.error("Erro ao renderizar:",e);
+      // force reload page to recover
+      document.body.innerHTML = '<div style="text-align:center;padding:60px;font-family:sans-serif"><h2>Erro ao carregar</h2><p style="color:#666;margin:12px 0">Clique abaixo para tentar novamente</p><button onclick="location.reload()" style="padding:10px 24px;background:#18160f;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px">Recarregar</button></div>';
+    }
   } else {
     // Show login screen
     userInfo.style.display = "none";
