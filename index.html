@@ -308,6 +308,11 @@ textarea.res:focus{border-color:var(--border2)}
     <select class="fsel" id="f-author" onchange="renderShelf()"><option value="">Todos os autores</option></select>
     <select class="fsel" id="f-year" onchange="renderShelf()"><option value="">Todos os anos</option></select>
     <select class="fsel" id="f-genre" onchange="renderShelf()"><option value="">Todos os gêneros</option></select>
+    <select class="fsel" id="f-pages" onchange="renderShelf()">
+      <option value="">Páginas</option>
+      <option value="pages-desc">Mais páginas primeiro</option>
+      <option value="pages-asc">Menos páginas primeiro</option>
+    </select>
   </div>
   <div class="books-grid" id="books-grid"></div>
 </div>
@@ -578,6 +583,9 @@ function renderShelf(){
   else if(fSort==="nota-desc")done.sort((a,b)=>(b.nota||0)-(a.nota||0));
   else if(fSort==="nota-asc")done.sort((a,b)=>(a.nota||0)-(b.nota||0));
   else if(fSort==="horas-desc")done.sort((a,b)=>bookMins(b)-bookMins(a));
+  const fP=document.getElementById("f-pages")?document.getElementById("f-pages").value:"";
+  if(fP==="pages-desc")done.sort((a,b)=>(b.pages||0)-(a.pages||0));
+  else if(fP==="pages-asc")done.sort((a,b)=>(a.pages||0)-(b.pages||0));
   const grid=document.getElementById("books-grid");
   let html=done.map(b=>{
     const c=cov(b);
@@ -592,8 +600,11 @@ function renderShelf(){
       </div>
       <div class="book-info">
         <div class="book-title">${b.title}</div>
-        <div class="book-author">${b.author}</div>
-        <div class="book-tags">${notaEl}${genreEl}${b.year?`<span class="tag tag-gray">${b.year}</span>`:""}${b.pages?`<span class="tag tag-gray">${b.pages} pág.</span>`:""}</div>
+        <div style="display:flex;align-items:center;justify-content:center;gap:4px;margin-top:2px">
+          <span class="book-author">${b.author}</span>
+          ${b.nota!=null&&b.nota!==""?`<span style="color:var(--text3);font-size:10px">—</span><span class="nota-tag">${b.nota}/10</span>`:""}
+        </div>
+        <div class="book-tags" style="justify-content:center">${genreEl}${b.pages?`<span class="tag tag-gray">${b.pages}p.</span>`:""}${b.year?`<span class="tag tag-gray">${b.year}</span>`:""}</div>
       </div>
     </div>`;
   }).join("");
@@ -659,8 +670,8 @@ function renderHistory(){
   sess=sess.slice().reverse();
   const el=document.getElementById("history-area");
   if(!sess.length){el.innerHTML='<div class="hist-empty">Nenhuma sessão ainda</div>';return}
-  el.innerHTML=`<table class="hist-table"><thead><tr><th>Data</th><th>Livro</th><th>Duração</th><th>Nota</th></tr></thead><tbody>`+
-    sess.map(s=>`<tr><td class="dim">${s.date}</td><td>${s.bookTitle}</td><td><strong>${fmtDur(s.dur)}</strong></td><td class="dim">${s.note||"—"}</td></tr>`).join("")+
+  el.innerHTML=`<table class="hist-table"><thead><tr><th>Data</th><th>Livro</th><th>Duração</th></tr></thead><tbody>`+
+    sess.map(s=>`<tr><td class="dim">${s.date}</td><td>${s.bookTitle}</td><td><strong>${fmtDur(s.dur)}</strong></td></tr>`).join("")+
   `</tbody></table>`;
 }
 
@@ -753,10 +764,10 @@ function renderStats(){
         else{bg='#1e6641';txtColor='#fff';fw='600';}
       }
       const tooltip=mins>0?fmtDur(mins):'';
-      cells+=`<div style="aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:6px;background:${bg};cursor:${mins?'default':'default'};opacity:${future?0.25:1}" title="${tooltip}">
-        <span style="font-size:11px;font-weight:${fw};color:${txtColor};line-height:1">${d}</span>
-        ${mins>0?`<span style="font-size:8px;color:${txtColor};opacity:.85;line-height:1;margin-top:1px">${fmtDur(mins)}</span>`:''}
-      </div>`;
+      cells+=`<div style="aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:6px;background:${bg};opacity:${future?0.2:1};transition:transform .18s,box-shadow .18s,z-index 0s;position:relative;z-index:1;cursor:default" ${!future?`onmouseenter="this.style.transform='scale(1.45)';this.style.zIndex=10;this.style.boxShadow='0 4px 14px rgba(0,0,0,.22)'" onmouseleave="this.style.transform='';this.style.zIndex=1;this.style.boxShadow=''"`:''}>
+          <span style="font-size:11px;font-weight:${fw};color:${txtColor};line-height:1">${d}</span>
+          ${mins>0?`<span style="font-size:8px;color:${txtColor};opacity:.85;line-height:1;margin-top:1px">${fmtDur(mins)}</span>`:''}
+        </div>`;
     }
 
     calHtml+=`<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px;break-inside:avoid">
