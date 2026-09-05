@@ -410,13 +410,11 @@ textarea.res:focus{border-color:var(--border2)}
     <div class="rp-tabs" style="flex-wrap:wrap">
       <div class="rp-tab active" onclick="switchRpTab('info')">Detalhes</div>
       <div class="rp-tab" onclick="switchRpTab('resumo')">Resumo</div>
-      <div class="rp-tab" onclick="switchRpTab('caps')">Capítulos</div>
       <div class="rp-tab" onclick="switchRpTab('notas')">Anotações pessoais</div>
     </div>
     <div class="rp-body">
       <div class="rp-pane active" id="rp-info"></div>
       <div class="rp-pane" id="rp-resumo"></div>
-      <div class="rp-pane" id="rp-caps"></div>
       <div class="rp-pane" id="rp-notas"></div>
     </div>
   </div>
@@ -932,14 +930,14 @@ function editChapter(bookId, n){
   const newTitle=prompt("Editar título do capítulo:",ch.title||"");
   if(newTitle===null)return;
   ch.title=newTitle.trim();
-  saveData();openPanel(bookId,"caps");
+  saveData();openPanel(bookId,"resumo");
 }
 function deleteChapter(bookId, n){
   if(!confirm("Excluir este capítulo e seu resumo?"))return;
   const b=books.find(x=>x.id===bookId);
   b.chapters=b.chapters.filter(x=>x.n!==n);
   b.chapters.forEach((c,i)=>c.n=i+1);
-  saveData();openPanel(bookId,"caps");
+  saveData();openPanel(bookId,"resumo");
 }
 let _editBookId=null;
 function openEditModal(){
@@ -1051,29 +1049,43 @@ function openPanel(id,tab){
         </div>
       </div>
     </div>`).join("");
-  document.getElementById("rp-caps").innerHTML=`${chHtml}
-    <div class="add-ch-row">
-      <input id="new-ch-${id}" placeholder="Título do capítulo…"/>
-      <button class="btn btn-sm" onclick="addChapter(${id})">+ Cap.</button>
-    </div>`;
 
-  document.getElementById("rp-notas").innerHTML=`
-    <div class="fmt-wrap">
-      <div class="fmt-toolbar">
-        <button class="fmt-btn" onclick="fmt('bold','notas-ta-${id}')" title="Negrito"><b>N</b></button>
-        <button class="fmt-btn" onclick="fmt('italic','notas-ta-${id}')" title="Itálico"><i>I</i></button>
-        <button class="fmt-btn" onclick="fmt('underline','notas-ta-${id}')" title="Sublinhado"><u>S</u></button>
+  // Anotações pessoais - multiple annotations
+  if(!Array.isArray(b.notas)) b.notas = b.notas ? [{id:1,title:"Anotação",text:b.notas,date:todayStr()}] : [];
+  const notasHtml2 = b.notas.map(n=>`
+    <div class="ch-block" style="margin-bottom:8px">
+      <div class="ch-hdr" onclick="toggleCh('nota-body-${id}-${n.id}')">
+        <span style="font-size:13px;font-weight:500">${n.title||"Anotação"}</span>
+        <div style="display:flex;gap:5px;align-items:center">
+          <span style="font-size:10px;color:var(--text3)">${n.date||""}</span>
+          <button onclick="event.stopPropagation();deleteNota(${id},${n.id})" style="font-size:10px;padding:2px 6px;border-radius:4px;border:1px solid #e0a0a0;background:#fdf0ee;cursor:pointer;color:#c0392b">✕</button>
+        </div>
       </div>
-      <textarea class="res" id="notas-ta-${id}" style="min-height:300px"
-        placeholder="Como este livro te tocou? O que foi melhor e pior? Anotações para releituras futuras…"
-        onchange="saveNotas(${id},this.value)">${b.notas||""}</textarea>
-    </div>`;
+      <div class="ch-body open" id="nota-body-${id}-${n.id}">
+        <div class="fmt-wrap">
+          <div class="fmt-toolbar">
+            <button class="fmt-btn" onclick="fmt('bold','nota-ta-${id}-${n.id}')" title="Negrito"><b>N</b></button>
+            <button class="fmt-btn" onclick="fmt('italic','nota-ta-${id}-${n.id}')" title="Itálico"><i>I</i></button>
+            <button class="fmt-btn" onclick="fmt('underline','nota-ta-${id}-${n.id}')" title="Sublinhado"><u>S</u></button>
+          </div>
+          <textarea class="res" id="nota-ta-${id}-${n.id}" style="min-height:120px"
+            placeholder="Escreva sua anotação…"
+            onchange="saveNotaText(${id},${n.id},this.value)">${n.text||""}</textarea>
+        </div>
+      </div>
+    </div>`).join("");
+
+  document.getElementById("rp-notas").innerHTML =
+    `<div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+      <button onclick="addNota(${id})" style="font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;padding:6px 14px;border-radius:var(--r-xs);border:1px solid var(--accent);background:var(--accent-bg);color:var(--accent);cursor:pointer">+ Nova anotação</button>
+    </div>` +
+    (notasHtml2 || `<div style="font-size:13px;color:var(--text3);font-style:italic;text-align:center;padding:24px 0">Nenhuma anotação ainda.<br>Clique em "+ Nova anotação" para começar.</div>`);
 
   switchRpTab(tab);
   document.getElementById("roverlay").classList.add("open");
 }
 function switchRpTab(name){
-  const tabs=["info","resumo","caps","notas"];
+  const tabs=["info","resumo","notas"];
   document.querySelectorAll(".rp-tab").forEach((t,i)=>t.classList.toggle("active",tabs[i]===name));
   document.querySelectorAll(".rp-pane").forEach((p,i)=>p.classList.toggle("active",tabs[i]===name));
 }
@@ -1091,7 +1103,7 @@ function addChapter(bookId){
   const inp=document.getElementById("new-ch-"+bookId);const val=inp.value.trim();if(!val)return;
   const b=books.find(x=>x.id===bookId);
   b.chapters.push({n:b.chapters.length+1,title:val,summary:""});
-  inp.value="";saveData();openPanel(bookId,"caps");
+  inp.value="";saveData();openPanel(bookId,"resumo");
 }
 
 /* ── MODAL ADD ── */
@@ -1181,7 +1193,27 @@ function renderFmt(text){
   r = r.replace(/\n/g,'<br>');
   return r;
 }
-function saveNotas(id,v){const b=books.find(x=>x.id===id);b.notas=v;saveData();}
+function addNota(bookId){
+  const title = prompt("Título da anotação:");
+  if(title===null) return;
+  const b = books.find(x=>x.id===bookId);
+  if(!Array.isArray(b.notas)) b.notas = b.notas?[{id:1,title:"Anotação",text:b.notas,date:todayStr()}]:[];
+  const newId = b.notas.length ? Math.max(...b.notas.map(n=>n.id))+1 : 1;
+  b.notas.push({id:newId, title:title.trim()||"Anotação", text:"", date:todayStr()});
+  saveData();
+  openPanel(bookId,"notas");
+}
+function saveNotaText(bookId,notaId,v){
+  const b=books.find(x=>x.id===bookId);
+  const n=b.notas.find(x=>x.id===notaId);
+  if(n){n.text=v;saveData();}
+}
+function deleteNota(bookId,notaId){
+  if(!confirm("Excluir esta anotação?"))return;
+  const b=books.find(x=>x.id===bookId);
+  b.notas=b.notas.filter(x=>x.id!==notaId);
+  saveData();openPanel(bookId,"notas");
+}
 
 /* ── PRINT VIEW ── */
 function openPrintView(bookId){
@@ -1191,10 +1223,11 @@ function openPrintView(bookId){
     const coverEl=c?`<img class="pv-cover" src="${c}">`:`<div class="pv-cover-ph"></div>`;
     const notaEl=b.nota!=null&&b.nota!==""?`<div class="pv-book-nota">Nota: ${b.nota}/10</div>`:"";
     const resenhaEl=b.resenha?`<div class="pv-section-title">Resenha</div><div class="pv-resenha">${renderFmt(b.resenha)}</div>`:"";
-    const notasEl=b.notas?`<div class="pv-section-title">Anotações pessoais</div><div class="pv-resenha">${renderFmt(b.notas)}</div>`:"";
+    const notasArr=Array.isArray(b.notas)?b.notas:(b.notas?[{title:"Anotações pessoais",text:b.notas}]:[]);
+    const notasEl=notasArr.length?notasArr.map(n=>`<div class="pv-section-title">📝 ${n.title||"Anotação"}${n.date?" · "+n.date:""}</div><div class="pv-resenha">${renderFmt(n.text||"")}</div>`).join(""):"";
     const capsWithSummary=(b.chapters||[]).filter(ch=>ch.summary);
     const capsEl=capsWithSummary.length?`<div class="pv-section-title">Resumos por capítulo</div>`+capsWithSummary.map(ch=>`<div class="pv-chapter"><div class="pv-ch-title">Cap. ${ch.n}${ch.title?" — "+ch.title:""}</div><div class="pv-ch-text">${renderFmt(ch.summary)}</div></div>`).join(""):"";
-    const hasContent=b.resenha||b.notas||capsWithSummary.length;
+    const hasContent=b.resenha||(Array.isArray(b.notas)?b.notas.length:b.notas)||capsWithSummary.length;
     if(!hasContent&&bookId)return`<div class="pv-book"><div class="pv-book-header">${coverEl}<div><div class="pv-book-title">${b.title}</div><div class="pv-book-meta">${b.author}${b.year?" · "+b.year:""}${b.genre?" · "+b.genre:""}</div>${notaEl}</div></div><div class="pv-empty">Nenhum resumo ou resenha registrado ainda.</div></div>`;
     if(!hasContent)return"";
     return`<div class="pv-book"><div class="pv-book-header">${coverEl}<div><div class="pv-book-title">${b.title}</div><div class="pv-book-meta">${b.author}${b.year?" · "+b.year:""}${b.genre?" · "+b.genre:""}</div>${notaEl}</div></div>${resenhaEl}${notasEl}${capsEl}</div>`;
