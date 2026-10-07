@@ -55,6 +55,12 @@ select.fsel{font-family:'DM Sans',sans-serif;font-size:12px;padding:6px 10px;bor
 .tag-gray{background:var(--surface2);color:var(--text3)}
 .tag-blue{background:var(--blue-bg);color:var(--blue)}
 .nota-tag{font-size:11px;color:var(--amber);font-weight:500}
+/* ESTRELAS */
+.stars-row{display:flex;justify-content:center;gap:1px;margin:5px 0 4px;height:14px;line-height:0}
+.star-wrap{position:relative;display:inline-block;width:14px;height:14px;cursor:pointer;flex-shrink:0}
+.star-wrap svg{position:absolute;top:0;left:0;width:14px;height:14px;pointer-events:none}
+.star-half-btn{position:absolute;top:0;left:0;width:50%;height:100%;z-index:2}
+.star-full-btn{position:absolute;top:0;left:50%;width:50%;height:100%;z-index:2}
 .add-card{cursor:pointer;aspect-ratio:2/3;border:1.5px dashed var(--border2);border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:26px;transition:all .18s;align-self:flex-start;width:100%}
 .add-card:hover{border-color:var(--text2);color:var(--text2);background:var(--surface2)}
 
@@ -90,9 +96,6 @@ select.fsel{font-family:'DM Sans',sans-serif;font-size:12px;padding:6px 10px;bor
 .tbtn-finish{background:#fff8f0;color:#c07030;border-color:#e8c89a}
 .tbtn-finish:hover{background:#fdeedd}
 .tbtn svg{width:10px;height:10px;flex-shrink:0}
-.timer-note-row{display:flex;gap:8px;margin-top:12px}
-.timer-note-row input{flex:1;font-family:'DM Sans',sans-serif;font-size:12px;padding:6px 10px;border:1px solid var(--border);border-radius:var(--r-xs);background:var(--surface);color:var(--text);outline:none}
-.timer-note-row input:focus{border-color:var(--border2)}
 
 /* HISTÓRICO */
 .hist-head{display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap}
@@ -349,9 +352,6 @@ textarea.res:focus{border-color:var(--border2)}
               <svg viewBox="0 0 10 10" fill="currentColor"><rect x="1" y="1" width="8" height="8"/></svg>Finalizar
             </button>
           </div>
-          <div class="timer-note-row">
-            <input id="session-note" placeholder="Nota do dia (ex: Caps. 5–7)…"/>
-          </div>
         </div>
       </div>
       <div class="card">
@@ -514,15 +514,13 @@ function timerFinalizar(){
   if(totalSec>=1&&selBookId){
     const b=books.find(x=>x.id===selBookId);
     const mins=Math.max(1,Math.round(totalSec/60));
-    const note=document.getElementById("session-note").value.trim();
     const today=todayStr();
     const ex=b.sessions.find(s=>s.date===today);
-    if(ex){ex.dur+=mins;if(note&&note!==ex.note)ex.note=ex.note?ex.note+" · "+note:note;}
-    else b.sessions.push({date:today,dur:mins,note});
+    if(ex){ex.dur+=mins;}
+    else b.sessions.push({date:today,dur:mins});
     updateTopStats();renderHistory();renderAndamento();saveData();
   }
   document.getElementById("timer-display").textContent="00:00:00";
-  document.getElementById("session-note").value="";
   setBtns("stopped");updateTodayLabel();
 }
 function setBtns(state){
@@ -597,6 +595,7 @@ function renderShelf(){
         </div>
       </div>
       <div class="book-info">
+        ${renderStars(b.id,b.nota)}
         <div class="book-title">${b.title}</div>
         <div style="display:flex;align-items:center;justify-content:center;gap:4px;margin-top:2px">
           <span class="book-author">${b.author}</span>
@@ -630,7 +629,10 @@ function renderAndamento(){
           <div class="pick-auth">${b.author}</div>
           <div class="prog-bar"><div class="prog-fill" style="width:${pct}%"></div></div>
           <div class="prog-txt">${b.currentChap}/${b.totalChaps} cap. · ${fmtDur(bookMins(b))} lidas</div>
-          <button class="finish-btn" onclick="finishBook(event,${b.id})">✓ Finalizar leitura</button>
+          <div style="display:flex;gap:6px;margin-top:6px">
+            <button class="finish-btn" onclick="finishBook(event,${b.id})" style="flex:1">✓ Finalizar leitura</button>
+            <button class="finish-btn" onclick="event.stopPropagation();openPanel(${b.id},'notas')" style="flex:1;background:var(--surface2);color:var(--text1);border:1px solid var(--border)">📝 Anotações</button>
+          </div>
         </div>
       </div>`;
     }).join("");
@@ -1097,6 +1099,37 @@ function closePanel(e){
 /* ── HELPERS DADOS ── */
 function toggleCh(id2){const el=document.getElementById(id2);if(el)el.classList.toggle("open")}
 function updateNota(id,v){const n=parseFloat(v);books.find(x=>x.id===id).nota=isNaN(n)?null:Math.round(n*10)/10;updateTopStats();renderShelf();saveData()}
+function setStarNota(bookId,val5){
+  /* val5 = 0..5 em incrementos de 0.5; guarda internamente em /10 */
+  const nota10=Math.round(val5*2*10)/10; /* ex: 3.5*2=7.0 */
+  const b=books.find(x=>x.id===bookId);
+  b.nota=nota10===0?null:nota10;
+  updateTopStats();renderShelf();saveData();
+  /* atualiza input /10 no painel se estiver aberto */
+  const inp=document.querySelector('#rp-head input[type="number"]');
+  if(inp&&_panelBookId===bookId)inp.value=b.nota??'';
+}
+function renderStars(bookId,nota10){
+  /* converte nota /10 para /5 */
+  const nota5=nota10!=null&&nota10!==""?Math.round((nota10/2)*2)/2:0;
+  const amber='%23F59E0B';const gray='%23D1D5DB';
+  let html='<div class="stars-row">';
+  for(let i=1;i<=5;i++){
+    const full=nota5>=i;
+    const half=!full&&nota5>=(i-0.5);
+    /* SVG de estrela com gradiente: metade esq=cor, metade dir=cinza */
+    const leftCol=full||half?amber:gray;
+    const rightCol=full?amber:gray;
+    const svg=`<svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="sg${bookId}_${i}" x1="0" x2="1" y1="0" y2="0"><stop offset="50%" stop-color="${leftCol}"/><stop offset="50%" stop-color="${rightCol}"/></linearGradient></defs><path fill="url(%23sg${bookId}_${i})" d="M10 1l2.39 4.84L18 6.73l-4 3.9.94 5.5L10 13.5l-4.94 2.63L6 10.63 2 6.73l5.61-.89z"/></svg>`;
+    html+=`<span class="star-wrap" title="${i-0.5}–${i} estrelas">
+      <span class="star-half-btn" onclick="setStarNota(${bookId},${i-0.5})"></span>
+      <span class="star-full-btn" onclick="setStarNota(${bookId},${i})"></span>
+      ${svg}
+    </span>`;
+  }
+  html+='</div>';
+  return html;
+}
 function saveResenha(id,v){books.find(x=>x.id===id).resenha=v;saveData()}
 function saveChSum(bookId,n,v){const b=books.find(x=>x.id===bookId);const c=b.chapters.find(x=>x.n===n);if(c){c.summary=v;saveData()}}
 function addChapter(bookId){
