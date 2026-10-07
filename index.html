@@ -56,11 +56,11 @@ select.fsel{font-family:'DM Sans',sans-serif;font-size:12px;padding:6px 10px;bor
 .tag-blue{background:var(--blue-bg);color:var(--blue)}
 .nota-tag{font-size:11px;color:var(--amber);font-weight:500}
 /* ESTRELAS */
-.stars-row{display:flex;justify-content:center;gap:1px;margin:5px 0 4px;height:14px;line-height:0}
-.star-wrap{position:relative;display:inline-block;width:14px;height:14px;cursor:pointer;flex-shrink:0}
-.star-wrap svg{position:absolute;top:0;left:0;width:14px;height:14px;pointer-events:none}
-.star-half-btn{position:absolute;top:0;left:0;width:50%;height:100%;z-index:2}
-.star-full-btn{position:absolute;top:0;left:50%;width:50%;height:100%;z-index:2}
+.stars-row{display:flex;justify-content:center;gap:2px;margin:5px 0 4px;height:18px;line-height:0}
+.stars-row-panel{display:flex;gap:4px;align-items:center;height:22px}
+.star-svg{width:18px;height:18px;flex-shrink:0}
+.star-svg-panel{width:20px;height:20px;flex-shrink:0;cursor:pointer;transition:transform .1s}
+.star-svg-panel:hover{transform:scale(1.2)}
 .add-card{cursor:pointer;aspect-ratio:2/3;border:1.5px dashed var(--border2);border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:26px;transition:all .18s;align-self:flex-start;width:100%}
 .add-card:hover{border-color:var(--text2);color:var(--text2);background:var(--surface2)}
 
@@ -595,7 +595,7 @@ function renderShelf(){
         </div>
       </div>
       <div class="book-info">
-        ${renderStars(b.id,b.nota)}
+        ${renderStars(b.id,b.estrelas)}
         <div class="book-title">${b.title}</div>
         <div style="display:flex;align-items:center;justify-content:center;gap:4px;margin-top:2px">
           <span class="book-author">${b.author}</span>
@@ -997,6 +997,10 @@ function openPanel(id,tab){
           onchange="updateNota(${id},this.value)"/>
         <span style="font-size:11px;color:var(--text3)">/10</span>
       </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+        <span style="font-size:11px;color:var(--text3)">Estrelas</span>
+        ${renderStarsPanel(id,b.estrelas)}
+      </div>
     </div>
     <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">
     <button class="rp-close" onclick="closePanel()">×</button>
@@ -1099,34 +1103,52 @@ function closePanel(e){
 /* ── HELPERS DADOS ── */
 function toggleCh(id2){const el=document.getElementById(id2);if(el)el.classList.toggle("open")}
 function updateNota(id,v){const n=parseFloat(v);books.find(x=>x.id===id).nota=isNaN(n)?null:Math.round(n*10)/10;updateTopStats();renderShelf();saveData()}
-function setStarNota(bookId,val5){
-  /* val5 = 0..5 em incrementos de 0.5; guarda internamente em /10 */
-  const nota10=Math.round(val5*2*10)/10; /* ex: 3.5*2=7.0 */
+function setEstrelas(bookId,val){
+  /* val = 0..5 em incrementos de 0.5, campo separado de nota */
   const b=books.find(x=>x.id===bookId);
-  b.nota=nota10===0?null:nota10;
-  updateTopStats();renderShelf();saveData();
-  /* atualiza input /10 no painel se estiver aberto */
-  const inp=document.querySelector('#rp-head input[type="number"]');
-  if(inp&&_panelBookId===bookId)inp.value=b.nota??'';
+  b.estrelas=val===0?null:val;
+  renderShelf();saveData();
+  /* re-renderiza a área de estrelas no painel sem fechar */
+  const el=document.getElementById("panel-stars-"+bookId);
+  if(el) el.outerHTML=renderStarsPanel(bookId,b.estrelas);
 }
-function renderStars(bookId,nota10){
-  /* converte nota /10 para /5 */
-  const nota5=nota10!=null&&nota10!==""?Math.round((nota10/2)*2)/2:0;
-  const amber='%23F59E0B';const gray='%23D1D5DB';
+function starSvg(bookId,i,estrelas,forPanel){
+  const val=estrelas||0;
+  const full=val>=i;
+  const half=!full&&val>=(i-0.5);
+  const amber='#F59E0B';const gray='#D1D5DB';
+  const leftCol=full||half?amber:gray;
+  const rightCol=full?amber:gray;
+  const uid="sg"+bookId+"_"+i+(forPanel?"p":"");
+  return `<svg class="${forPanel?'star-svg-panel':'star-svg'}" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">`+
+    `<defs><linearGradient id="${uid}" x1="0" x2="1" y1="0" y2="0">`+
+    `<stop offset="50%" stop-color="${leftCol}"/><stop offset="50%" stop-color="${rightCol}"/>`+
+    `</linearGradient></defs>`+
+    `<path fill="url(#${uid})" d="M10 1l2.39 4.84L18 6.73l-4 3.9.94 5.5L10 13.5l-4.94 2.63L6 10.63 2 6.73l5.61-.89z"/>`+
+    `</svg>`;
+}
+/* Card: só exibição, sem clique */
+function renderStars(bookId,estrelas){
   let html='<div class="stars-row">';
+  for(let i=1;i<=5;i++) html+=starSvg(bookId,i,estrelas,false);
+  html+='</div>';
+  return html;
+}
+/* Painel: interativo com meia estrela, clicável */
+function renderStarsPanel(bookId,estrelas){
+  const val=estrelas||0;
+  let html=`<div class="stars-row-panel" id="panel-stars-${bookId}">`;
   for(let i=1;i<=5;i++){
-    const full=nota5>=i;
-    const half=!full&&nota5>=(i-0.5);
-    /* SVG de estrela com gradiente: metade esq=cor, metade dir=cinza */
-    const leftCol=full||half?amber:gray;
-    const rightCol=full?amber:gray;
-    const svg=`<svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="sg${bookId}_${i}" x1="0" x2="1" y1="0" y2="0"><stop offset="50%" stop-color="${leftCol}"/><stop offset="50%" stop-color="${rightCol}"/></linearGradient></defs><path fill="url(%23sg${bookId}_${i})" d="M10 1l2.39 4.84L18 6.73l-4 3.9.94 5.5L10 13.5l-4.94 2.63L6 10.63 2 6.73l5.61-.89z"/></svg>`;
-    html+=`<span class="star-wrap" title="${i-0.5}–${i} estrelas">
-      <span class="star-half-btn" onclick="setStarNota(${bookId},${i-0.5})"></span>
-      <span class="star-full-btn" onclick="setStarNota(${bookId},${i})"></span>
-      ${svg}
-    </span>`;
+    /* cada estrela SVG envolto em dois spans clicáveis sobrepostos */
+    html+=`<span style="position:relative;display:inline-block;width:20px;height:20px;cursor:pointer">`+
+      `<span style="position:absolute;top:0;left:0;width:50%;height:100%;z-index:2" onclick="setEstrelas(${bookId},${i-0.5})" title="${i-0.5} estrelas"></span>`+
+      `<span style="position:absolute;top:0;left:50%;width:50%;height:100%;z-index:2" onclick="setEstrelas(${bookId},${i})" title="${i} estrelas"></span>`+
+      starSvg(bookId,i,estrelas,true)+
+    `</span>`;
   }
+  /* botão limpar */
+  html+=`<span onclick="setEstrelas(${bookId},0)" title="Remover avaliação" style="font-size:11px;color:var(--text3);cursor:pointer;margin-left:4px">✕</span>`;
+  html+=`<span style="font-size:12px;color:var(--amber);font-weight:600;margin-left:4px">${val>0?val+" ★":""}</span>`;
   html+='</div>';
   return html;
 }
