@@ -198,6 +198,21 @@ textarea.res:focus{border-color:var(--border2)}
 .fmt-btn{font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;width:26px;height:26px;border-radius:4px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
 .fmt-btn:hover{background:var(--surface2);border-color:var(--border2)}
 .fmt-wrap{display:flex;flex-direction:column}
+/* Editor fullscreen */
+.efmt{font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;padding:4px 8px;border-radius:4px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;display:inline-flex;align-items:center;gap:3px;white-space:nowrap;transition:all .12s}
+.efmt:hover{background:var(--surface2);border-color:var(--border2)}
+.efmt-sel{font-family:'DM Sans',sans-serif;font-size:12px;padding:4px 6px;border-radius:4px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;outline:none}
+.efmt-sep{width:1px;height:20px;background:var(--border);margin:0 3px;display:inline-block}
+#editor-body h1{font-size:24px;margin:16px 0 8px;font-family:'Lora',serif}
+#editor-body h2{font-size:20px;margin:14px 0 6px;font-family:'Lora',serif}
+#editor-body h3{font-size:16px;margin:12px 0 4px;font-family:'Lora',serif}
+#editor-body blockquote{border-left:3px solid var(--border2);margin:8px 0;padding:4px 16px;color:var(--text2);font-style:italic}
+blockquote[data-pag]::after{content:"p. " attr(data-pag);display:block;text-align:right;font-style:normal;font-size:.8em;color:#9a958c;margin-top:2px;letter-spacing:.02em}
+.nota-prev blockquote{border-left:3px solid var(--border2);margin:6px 0;padding:2px 12px;font-style:italic}
+.nota-prev h1,.nota-prev h2,.nota-prev h3{font-size:15px;margin:4px 0}
+#busca-resultados mark{background:#fde68a;color:inherit;padding:0 1px;border-radius:2px}
+#editor-body ul,#editor-body ol{padding-left:24px;margin:6px 0}
+#editor-body p{margin:4px 0}
 
 @media print{
   .topbar,.tabs,.shelf-top,.resumo-overlay,.overlay,.save-ind,
@@ -295,6 +310,7 @@ textarea.res:focus{border-color:var(--border2)}
   <div class="tab active" onclick="goTo('estante')">Estante</div>
   <div class="tab" onclick="goTo('andamento')">Em andamento</div>
   <div class="tab" onclick="goTo('estatisticas')">Estatísticas</div>
+  <div class="tab" onclick="abrirBusca()" title="Buscar em anotações, resenhas e resumos" style="margin-left:auto;color:var(--text2)">🔍<span class="tab-busca-txt"> Buscar</span></div>
 </div>
 
 <!-- ESTANTE -->
@@ -316,6 +332,7 @@ textarea.res:focus{border-color:var(--border2)}
       <option value="pages-desc">Mais páginas primeiro</option>
       <option value="pages-asc">Menos páginas primeiro</option>
     </select>
+    <button onclick="abrirCaderno()" title="Gerar um PDF com resumos e anotações de vários livros" style="font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;padding:6px 12px;border-radius:var(--r-xs);border:1px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer;white-space:nowrap">📚 Caderno PDF</button>
   </div>
   <div class="books-grid" id="books-grid"></div>
 </div>
@@ -532,7 +549,7 @@ function setBtns(state){
 }
 
 /* ── HELPERS ── */
-function cov(b){return COVERS[b.id]||b.cover||""}
+function cov(b){return b.cover||COVERS[b.id]||""}
 function fmtDur(m){const h=Math.floor(m/60),mm=m%60;return h>0?(mm>0?h+"h "+mm+"m":h+"h"):mm+"m"}
 function bookMins(b){return b.sessions.reduce((a,s)=>a+s.dur,0)}
 function totalHoursMins(){return books.reduce((a,b)=>a+bookMins(b),0)}
@@ -842,13 +859,14 @@ function renderStats(){
   </div>
   <div class="card"><div class="stat-section-title">Horas por mês</div><div class="bar-chart">${barsMonth}</div></div>`;
 
+  html+=cardEspacoNuvem();
   html+=`<div class="card" style="border:1px solid var(--border2)">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
       <span style="font-size:18px">💾</span>
       <div class="stat-section-title" style="margin-bottom:0">Backup dos dados</div>
     </div>
     <p style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.6">
-      Como o app salva os dados no navegador, <strong>faça backup regularmente</strong> e restaure ao abrir em outro computador ou após limpar o navegador.
+      Seus dados ficam salvos na nuvem, ligados à sua conta Google. Mesmo assim, <strong>exporte um backup de vez em quando</strong>: é a sua cópia de segurança se algo der errado.
     </p>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
       <button onclick="exportData()" style="display:inline-flex;align-items:center;gap:6px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;padding:8px 16px;border-radius:var(--r-xs);cursor:pointer;border:1.5px solid #7c6fcd;background:#f0eeff;color:#5b4db5">↓ Exportar dados (salvar arquivo)</button>
@@ -1059,30 +1077,22 @@ function openPanel(id,tab){
   // Anotações pessoais - multiple annotations
   if(!Array.isArray(b.notas)) b.notas = b.notas ? [{id:1,title:"Anotação",text:b.notas,date:todayStr()}] : [];
   const notasHtml2 = b.notas.map(n=>`
-    <div class="ch-block" style="margin-bottom:8px">
-      <div class="ch-hdr" onclick="toggleCh('nota-body-${id}-${n.id}')">
-        <span style="font-size:13px;font-weight:500">${n.title||"Anotação"}</span>
-        <div style="display:flex;gap:5px;align-items:center">
-          <span style="font-size:10px;color:var(--text3)">${n.date||""}</span>
-          <button onclick="event.stopPropagation();deleteNota(${id},${n.id})" style="font-size:10px;padding:2px 6px;border-radius:4px;border:1px solid #e0a0a0;background:#fdf0ee;cursor:pointer;color:#c0392b">✕</button>
-        </div>
+    <div style="border:1px solid var(--border);border-radius:var(--r-sm);margin-bottom:10px;overflow:hidden">
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--surface2);border-bottom:1px solid var(--border)">
+        <span style="font-size:13px;font-weight:500;flex:1">${n.title||"Anotação"}</span>
+        <span style="font-size:10px;color:var(--text3)">${n.date||""}</span>
+        <button onclick="openEditor(${id},${n.id})" title="Abrir editor" style="font-family:'DM Sans',sans-serif;font-size:11px;font-weight:500;padding:3px 10px;border-radius:4px;border:1px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer">✏️ Editar</button>
+        <button onclick="deleteNota(${id},${n.id})" style="font-size:10px;padding:3px 7px;border-radius:4px;border:1px solid #e0a0a0;background:#fdf0ee;cursor:pointer;color:#c0392b">✕</button>
       </div>
-      <div class="ch-body open" id="nota-body-${id}-${n.id}">
-        <div class="fmt-wrap">
-          <div class="fmt-toolbar">
-            <button class="fmt-btn" onclick="fmt('bold','nota-ta-${id}-${n.id}')" title="Negrito"><b>N</b></button>
-            <button class="fmt-btn" onclick="fmt('italic','nota-ta-${id}-${n.id}')" title="Itálico"><i>I</i></button>
-            <button class="fmt-btn" onclick="fmt('underline','nota-ta-${id}-${n.id}')" title="Sublinhado"><u>S</u></button>
-          </div>
-          <textarea class="res" id="nota-ta-${id}-${n.id}" style="min-height:120px"
-            placeholder="Escreva sua anotação…"
-            onchange="saveNotaText(${id},${n.id},this.value)">${n.text||""}</textarea>
-        </div>
+      <div class="nota-prev" onclick="openEditor(${id},${n.id})" title="Clique para abrir no editor" style="padding:10px 14px;font-size:13px;line-height:1.7;color:var(--text2);max-height:120px;overflow:hidden;position:relative;cursor:pointer">
+        ${notaVazia(n.text)?"<em style='color:var(--text3)'>Sem conteúdo — clique para escrever.</em>":notaTextToHtml(n.text)}
+        <div style="position:absolute;bottom:0;left:0;right:0;height:36px;background:linear-gradient(transparent,var(--bg))"></div>
       </div>
     </div>`).join("");
 
   document.getElementById("rp-notas").innerHTML =
-    `<div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+    `<div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:12px">
+      <button onclick="exportarPDF(${id})" style="font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;padding:6px 14px;border-radius:var(--r-xs);border:1px solid var(--border);background:var(--surface2);color:var(--text2);cursor:pointer">⬇ Exportar PDF</button>
       <button onclick="addNota(${id})" style="font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;padding:6px 14px;border-radius:var(--r-xs);border:1px solid var(--accent);background:var(--accent-bg);color:var(--accent);cursor:pointer">+ Nova anotação</button>
     </div>` +
     (notasHtml2 || `<div style="font-size:13px;color:var(--text3);font-style:italic;text-align:center;padding:24px 0">Nenhuma anotação ainda.<br>Clique em "+ Nova anotação" para começar.</div>`);
@@ -1248,6 +1258,502 @@ function renderFmt(text){
   r = r.replace(/\n/g,'<br>');
   return r;
 }
+/* ── EDITOR FULLSCREEN ── */
+var _editorBookId=null, _editorNotaId=null, editorDirty=false;
+var _edRange=null;
+document.addEventListener("selectionchange",function(){
+  var s=window.getSelection(),b=document.getElementById("editor-body");
+  if(b&&s.rangeCount&&b.contains(s.anchorNode)) _edRange=s.getRangeAt(0).cloneRange();
+});
+function edEmCitacao(){
+  var s=window.getSelection(),b=document.getElementById("editor-body");
+  if(!s.rangeCount) return false;
+  var n=s.anchorNode; if(n&&n.nodeType===3) n=n.parentNode;
+  while(n&&n!==b){ if(n.tagName==="BLOCKQUOTE") return true; n=n.parentNode; }
+  return false;
+}
+function edCitacaoAtual(){
+  var s=window.getSelection(),b=document.getElementById("editor-body");
+  if(!s.rangeCount) return null;
+  var n=s.anchorNode; if(n&&n.nodeType===3) n=n.parentNode;
+  while(n&&n!==b){ if(n.tagName==="BLOCKQUOTE") return n; n=n.parentNode; }
+  return null;
+}
+function edRestauraSelecao(){
+  var b=document.getElementById("editor-body"); b.focus();
+  if(_edRange){var s=window.getSelection();s.removeAllRanges();s.addRange(_edRange);}
+}
+function edLimpaPagina(v){
+  return String(v||"").replace(/[<>"'&]/g,"").replace(/^\s*p(á|a)?g?(ina)?\.?\s*/i,"").trim().slice(0,20);
+}
+function edToggleCitacao(){
+  edRestauraSelecao();
+  var era=edEmCitacao();
+  document.execCommand("formatBlock",false,era?"p":"blockquote");
+  if(!era){
+    var bq=edCitacaoAtual();
+    if(bq){
+      var pg=prompt("Página do trecho (opcional — deixe em branco se não quiser):","");
+      pg=edLimpaPagina(pg);
+      if(pg) bq.setAttribute("data-pag",pg);
+      edRestauraSelecao();
+    }
+  }
+  edOnInput(); edAtualizaBotoes();
+}
+function edPaginaCitacao(){
+  edRestauraSelecao();
+  var bq=edCitacaoAtual();
+  if(!bq){ edStatus("Para pôr a página, clique dentro de uma citação primeiro."); return; }
+  var pg=prompt("Página do trecho (deixe em branco para remover):",bq.getAttribute("data-pag")||"");
+  if(pg===null) return;
+  pg=edLimpaPagina(pg);
+  if(pg) bq.setAttribute("data-pag",pg); else bq.removeAttribute("data-pag");
+  edRestauraSelecao(); edOnInput();
+}
+function edAtualizaBotoes(){
+  var on=edEmCitacao();
+  ["btn-citacao","btn-pagina"].forEach(function(id){
+    var bt=document.getElementById(id); if(!bt) return;
+    bt.style.background=on?"var(--accent-bg)":"";
+    bt.style.borderColor=on?"var(--accent)":"";
+    bt.style.color=on?"var(--accent)":"";
+  });
+  var bp=document.getElementById("btn-pagina"); if(bp) bp.style.opacity=on?"1":".45";
+}
+
+/* ── CONTADOR, STATUS E RASCUNHO AUTOMÁTICO ── */
+var _rascTimer=null;
+function horaAgora(ts){var d=ts?new Date(ts):new Date();return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");}
+function edStatus(t){var el=document.getElementById("ed-status");if(el)el.textContent=t;}
+function edContar(){
+  var b=document.getElementById("editor-body"),el=document.getElementById("ed-contagem");
+  if(!b||!el) return;
+  var t=b.innerText||"";
+  var p=(t.trim().match(/\S+/g)||[]).length;
+  var c=t.replace(/\n/g,"").length;
+  el.textContent=p.toLocaleString("pt-BR")+(p===1?" palavra":" palavras")+" · "+c.toLocaleString("pt-BR")+" caracteres";
+}
+function rascKey(bId,nId){return "estante_rascunho_"+bId+"_"+nId;}
+function rascLer(bId,nId){try{return JSON.parse(localStorage.getItem(rascKey(bId,nId))||"null");}catch(e){return null;}}
+function rascApagar(bId,nId){try{localStorage.removeItem(rascKey(bId,nId));}catch(e){}}
+function rascGravar(){
+  if(!_editorBookId||!editorDirty) return;
+  try{
+    localStorage.setItem(rascKey(_editorBookId,_editorNotaId),JSON.stringify({html:document.getElementById("editor-body").innerHTML,ts:Date.now()}));
+    edStatus("Rascunho guardado às "+horaAgora()+" · Ctrl+S salva na nuvem");
+  }catch(e){ edStatus("⚠ Não deu para guardar o rascunho neste aparelho — salve com Ctrl+S"); }
+}
+function edOnInput(){
+  editorDirty=true; edContar();
+  clearTimeout(_rascTimer); _rascTimer=setTimeout(rascGravar,1500);
+  edStatus("Alterações não salvas");
+}
+function editorAberto(){var m=document.getElementById("editor-modal");return !!m&&m.style.display==="flex";}
+window.addEventListener("beforeunload",function(e){
+  if(editorAberto()&&editorDirty){ rascGravar(); e.preventDefault(); e.returnValue=""; }
+});
+document.addEventListener("keydown",function(e){
+  if(editorAberto()){
+    if((e.ctrlKey||e.metaKey)&&(e.key==="s"||e.key==="S")){ e.preventDefault(); editorSalvarSemFechar(); return; }
+    if(e.key==="Escape"){ e.preventDefault(); editorClose(); return; }
+    return;
+  }
+  if(e.key==="Escape"){
+    var w=document.getElementById("pdf-opts-wrap"); if(w){w.remove();return;}
+    var bm=document.getElementById("busca-modal"); if(bm&&bm.style.display==="flex"){fecharBusca();return;}
+    var ro=document.getElementById("roverlay"); if(ro&&ro.classList.contains("open")){closePanel();return;}
+  }
+});
+document.addEventListener("selectionchange",function(){ if(document.getElementById("editor-modal")?.style.display==="flex") edAtualizaBotoes(); });
+function edCmd(cmd,val){
+  var b=document.getElementById("editor-body"); b.focus();
+  if(_edRange){var s=window.getSelection();s.removeAllRanges();s.addRange(_edRange);}
+  if(cmd==="hiliteColor"&&!document.queryCommandSupported("hiliteColor")) cmd="backColor";
+  document.execCommand(cmd,false,val===undefined?null:val);
+  edOnInput();
+}
+
+function openEditor(bookId, notaId){
+  _editorBookId=bookId; _editorNotaId=notaId; editorDirty=false; _edRange=null;
+  const b=books.find(x=>x.id===bookId);
+  const n=b.notas.find(x=>x.id===notaId);
+  document.getElementById("editor-modal-title").textContent=b.title+" — "+( n.title||"Anotação");
+  const body=document.getElementById("editor-body");
+  const salvo=notaTextToHtml(n.text||"");
+  body.innerHTML=salvo;
+  const modal=document.getElementById("editor-modal");
+  modal.style.display="flex";
+  document.getElementById("editor-scroll").scrollTop=0;
+  edStatus("Ctrl+S salva · Esc fecha");
+  /* rascunho não salvo de uma sessão anterior? */
+  const r=rascLer(bookId,notaId);
+  if(r&&r.html&&r.html!==salvo&&r.html!==n.text){
+    const quando=new Date(r.ts).toLocaleDateString("pt-BR")+" às "+horaAgora(r.ts);
+    if(confirm("Encontrei um rascunho desta anotação que não chegou a ser salvo ("+quando+").\n\nQuer recuperar esse rascunho?")){
+      body.innerHTML=r.html; editorDirty=true;
+      edStatus("Rascunho recuperado — clique em Salvar para manter");
+    } else rascApagar(bookId,notaId);
+  } else if(r) rascApagar(bookId,notaId);
+  edContar(); edAtualizaBotoes();
+  body.focus();
+}
+function editorSalvarSemFechar(){
+  if(!_editorBookId||!_editorNotaId) return;
+  clearTimeout(_rascTimer);
+  const b=books.find(x=>x.id===_editorBookId);
+  const n=b.notas.find(x=>x.id===_editorNotaId);
+  n.text=document.getElementById("editor-body").innerHTML; /* guarda HTML rico */
+  saveData();
+  rascApagar(_editorBookId,_editorNotaId);
+  editorDirty=false;
+  edStatus("Salvo às "+horaAgora());
+}
+function editorSave(){
+  if(!_editorBookId||!_editorNotaId) return;
+  editorSalvarSemFechar();
+  document.getElementById("editor-modal").style.display="none";
+  openPanel(_editorBookId,"notas");
+}
+function editorClose(){
+  if(editorDirty&&!confirm("Fechar sem salvar? As alterações feitas desde o último salvamento serão descartadas.")) return;
+  clearTimeout(_rascTimer);
+  if(_editorBookId) rascApagar(_editorBookId,_editorNotaId);
+  editorDirty=false;
+  document.getElementById("editor-modal").style.display="none";
+}
+function notaVazia(t){return !t||!htmlParaTexto(t).trim();}
+/* converte texto com marcadores simples para HTML rico */
+function notaTextToHtml(t){
+  if(!t) return "<p><br></p>";
+  /* se já for HTML (tem tags), devolve direto */
+  if(/<[a-z][\s\S]*>/i.test(t)) return t;
+  /* senão converte markdown básico */
+  return t.split("\n").map(l=>{
+    l=l.replace(/\*\*(.*?)\*\*/g,"<strong>$1</strong>");
+    l=l.replace(/_(.*?)_/g,"<em>$1</em>");
+    return "<p>"+(l||"<br>")+"</p>";
+  }).join("");
+}
+
+/* ── UTILITÁRIOS DE TEXTO ── */
+function escHtml(s){return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+function htmlParaTexto(h){
+  if(!h) return "";
+  h=String(h);
+  if(!/<[a-z][\s\S]*>/i.test(h)) return h.replace(/\*\*(.*?)\*\*/g,"$1");
+  const s=h.replace(/<\/(p|div|h[1-6]|li|blockquote)>|<br\s*\/?>/gi," ");
+  return (new DOMParser().parseFromString(s,"text/html").body.textContent||"").replace(/\s+/g," ").trim();
+}
+/* normaliza sem acento/maiúscula mantendo o mesmo comprimento do texto original */
+function normStr(s){
+  let o="";
+  for(let i=0;i<s.length;i++){const c=s[i];o+=(c.normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().charAt(0))||c;}
+  return o;
+}
+
+/* ── PDF ── */
+const PDF_CSS=`*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'EB Garamond',Georgia,serif;color:#1a1a1a;background:#fff;padding:60px 80px;max-width:800px;margin:0 auto;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+@page{margin:18mm 20mm}
+@media print{body{padding:0;max-width:none}}
+h1,h2,h3{font-family:'Lora',serif;text-align:left}
+p{margin:4px 0}
+ul,ol{padding-left:22px;margin:6px 0}
+blockquote{border-left:3px solid #ccc;padding:4px 14px;color:#555;font-style:italic;margin:8px 0}
+blockquote[data-pag]::after{content:"p. " attr(data-pag);display:block;text-align:right;font-style:normal;font-size:.8em;color:#999;margin-top:2px}
+.livro+.livro{break-before:page;page-break-before:always;padding-top:4px}
+.capa{min-height:80vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;break-after:page;page-break-after:always}
+@media print{.capa{min-height:215mm}}
+.sumario{break-after:page;page-break-after:always}
+.sumario ol{padding-left:0;list-style:none;counter-reset:s}
+.sumario li{counter-increment:s;display:flex;gap:10px;padding:7px 0;border-bottom:1px dotted #ccc;font-size:15px}
+.sumario li::before{content:counter(s) ".";color:#999;min-width:24px}`;
+
+function pdfTemResumo(b){return !!(b.resenha&&String(b.resenha).trim())||(b.chapters||[]).some(ch=>ch.summary&&ch.summary.trim());}
+function pdfTemNotas(b){return Array.isArray(b.notas)&&b.notas.some(n=>!notaVazia(n.text));}
+
+function pdfSecaoLivro(b,inclResumo,inclNotas){
+  const c=cov(b);
+  let estrelas="";
+  const v=b.estrelas||0;
+  if(v>0) for(let i=1;i<=5;i++){
+    const full=v>=i,half=!full&&v>=(i-0.5);
+    const gid="pdfstar_"+b.id+"_"+i;
+    const fill=full?"#F59E0B":half?`url(#${gid})`:"#d6d6d6";
+    estrelas+=`<svg width="18" height="18" viewBox="0 0 24 24" style="margin-right:2px;vertical-align:middle">${half?`<defs><linearGradient id="${gid}"><stop offset="50%" stop-color="#F59E0B"/><stop offset="50%" stop-color="#d6d6d6"/></linearGradient></defs>`:""}<path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="${fill}"/></svg>`;
+  }
+  let corpo="";
+  const caps=(b.chapters||[]).filter(ch=>ch.summary&&ch.summary.trim());
+  if(inclResumo&&pdfTemResumo(b)){
+    corpo+=`<h2 style="font-size:18px;border-bottom:1px solid #ddd;padding-bottom:6px;margin:28px 0 14px">Resumo</h2>`;
+    if(b.resenha&&String(b.resenha).trim()) corpo+=`<div style="font-size:15px;line-height:1.8;text-align:justify;margin-bottom:18px">${notaTextToHtml(b.resenha)}</div>`;
+    caps.forEach(ch=>{
+      corpo+=`<div style="margin-bottom:18px">
+        <div style="font-size:13px;font-weight:600;color:#555;margin-bottom:4px">Cap. ${ch.n}${ch.title?" — "+escHtml(ch.title):""}</div>
+        <div style="font-size:15px;line-height:1.8;text-align:justify">${notaTextToHtml(ch.summary)}</div>
+      </div>`;
+    });
+  }
+  if(inclNotas&&pdfTemNotas(b)){
+    corpo+=`<h2 style="font-size:18px;border-bottom:1px solid #ddd;padding-bottom:6px;margin:28px 0 14px">Anotações pessoais</h2>`;
+    b.notas.filter(n=>!notaVazia(n.text)).forEach(n=>{
+      corpo+=`<div style="margin-bottom:28px">
+        <div style="font-size:13px;font-weight:600;color:#555;margin-bottom:6px;display:flex;justify-content:space-between;gap:12px">
+          <span>${escHtml(n.title||"Anotação")}</span><span style="font-weight:400;color:#999">${escHtml(n.date||"")}</span>
+        </div>
+        <div style="font-size:15px;line-height:1.8;text-align:justify;border-left:3px solid #e0a000;padding-left:14px">${notaTextToHtml(n.text)}</div>
+      </div>`;
+    });
+  }
+  return `<section class="livro">
+  <div style="display:flex;gap:24px;align-items:flex-start;border-bottom:2px solid #1a1a1a;padding-bottom:24px">
+    ${c?`<img src="${c}" style="width:80px;height:auto;border-radius:4px;box-shadow:0 2px 8px rgba(0,0,0,.2)">`:""}
+    <div>
+      <h1 style="font-size:26px;margin-bottom:4px">${escHtml(b.title)}</h1>
+      <div style="font-size:14px;color:#555;margin-bottom:8px">${escHtml(b.author||"")}${b.year?" · "+b.year:""}${b.genre?" · "+escHtml(b.genre):""}</div>
+      ${estrelas?`<div>${estrelas}</div>`:""}
+      ${b.nota!=null&&b.nota!==""?`<div style="font-size:13px;color:#b07a00;margin-top:4px">Nota: ${b.nota}/10</div>`:""}
+    </div>
+  </div>
+  ${corpo}
+  </section>`;
+}
+
+function pdfAbrir(titulo,corpo){
+  const html=`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>${escHtml(titulo)}</title>
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=Lora:wght@400;600&display=swap" rel="stylesheet">
+  <style>${PDF_CSS}</style></head><body>
+  ${corpo}
+  <div style="margin-top:48px;font-size:11px;color:#999;border-top:1px solid #eee;padding-top:12px">Gerado por Estante Virtual · ${new Date().toLocaleDateString("pt-BR")}</div>
+  </body></html>`;
+  const win=window.open("","_blank");
+  if(!win){ alert("O navegador bloqueou a janela do PDF. Permita pop-ups para este site e tente de novo."); return; }
+  win.document.write(html);
+  win.document.close();
+  let impresso=false;
+  const imprimir=()=>{ if(impresso) return; impresso=true; win.focus(); win.print(); };
+  try{ win.document.fonts.ready.then(()=>setTimeout(imprimir,200)); }catch(e){}
+  win.onload=()=>setTimeout(imprimir,300);
+  setTimeout(imprimir,2000);
+}
+
+function pdfModal(titulo,conteudo,acao){
+  document.getElementById("pdf-opts-wrap")?.remove();
+  const wrap=document.createElement("div");
+  wrap.id="pdf-opts-wrap";
+  wrap.style.cssText="position:fixed;inset:0;z-index:3000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.5);padding:16px";
+  wrap.onclick=e=>{if(e.target===wrap)wrap.remove();};
+  wrap.innerHTML=`<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:26px 28px;width:100%;max-width:400px;font-family:'DM Sans',sans-serif">
+    <div style="font-size:15px;font-weight:600;margin-bottom:16px">${titulo}</div>
+    <div style="margin-bottom:20px">${conteudo}</div>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button onclick="document.getElementById('pdf-opts-wrap').remove()" style="font-family:inherit;font-size:12px;padding:6px 14px;border-radius:var(--r-xs);border:1px solid var(--border);background:var(--surface2);color:var(--text2);cursor:pointer">Cancelar</button>
+      <button id="pdf-btn-gerar" onclick="${acao}" style="font-family:inherit;font-size:12px;font-weight:600;padding:6px 16px;border-radius:var(--r-xs);border:none;background:var(--accent);color:#fff;cursor:pointer">⬇ Gerar PDF</button>
+    </div>
+  </div>`;
+  document.body.appendChild(wrap);
+}
+const _chk=(id,txt,extra)=>`<label style="display:flex;gap:8px;align-items:center;font-size:13px;cursor:pointer;margin-top:8px"><input type="checkbox" id="${id}" checked ${extra||""}> ${txt}</label>`;
+
+/* PDF de um livro */
+function exportarPDF(bookId){
+  const b=books.find(x=>x.id===bookId);
+  let opts="";
+  if(pdfTemResumo(b)) opts+=_chk("pdf-opt-resumo","Resumo do livro");
+  if(pdfTemNotas(b))  opts+=_chk("pdf-opt-notas","Anotações pessoais");
+  if(!opts){ alert("Este livro ainda não tem resumo nem anotações para exportar."); return; }
+  pdfModal("Exportar PDF — "+escHtml(b.title),opts,`gerarPDF(${bookId})`);
+}
+function gerarPDF(bookId){
+  const b=books.find(x=>x.id===bookId);
+  const inclResumo=!!document.getElementById("pdf-opt-resumo")?.checked;
+  const inclNotas =!!document.getElementById("pdf-opt-notas")?.checked;
+  if(!inclResumo&&!inclNotas){ alert("Marque pelo menos uma opção."); return; }
+  document.getElementById("pdf-opts-wrap")?.remove();
+  const sufixo=inclResumo&&inclNotas?"resumo e anotações":inclResumo?"resumo":"anotações";
+  pdfAbrir(b.title+" — "+sufixo, pdfSecaoLivro(b,inclResumo,inclNotas));
+}
+
+/* PDF caderno de leituras (vários livros) */
+function abrirCaderno(){
+  const anos=[...new Set(books.map(b=>b.year).filter(Boolean))].sort((a,b)=>b-a);
+  const sel=`<label style="display:block;font-size:12px;color:var(--text3);margin-bottom:4px">Ano</label>
+    <select id="cad-ano" onchange="cadernoContar()" class="fsel" style="width:100%;margin-bottom:6px">
+      <option value="">Todos os anos</option>${anos.map(a=>`<option value="${a}">${a}</option>`).join("")}
+    </select>`;
+  pdfModal("📚 Caderno de leituras (PDF)",
+    sel+_chk("cad-resumo","Resumos",'onchange="cadernoContar()"')+_chk("cad-notas","Anotações pessoais",'onchange="cadernoContar()"')+
+    `<div id="cad-info" style="margin-top:14px;font-size:12px;color:var(--text3)"></div>`,
+    "gerarCaderno()");
+  cadernoContar();
+}
+function cadernoOpcoes(){
+  return {ano:document.getElementById("cad-ano")?.value||"",
+          resumo:!!document.getElementById("cad-resumo")?.checked,
+          notas:!!document.getElementById("cad-notas")?.checked};
+}
+function cadernoLivros(o){
+  return books
+    .filter(b=>!o.ano||String(b.year)===o.ano)
+    .filter(b=>(o.resumo&&pdfTemResumo(b))||(o.notas&&pdfTemNotas(b)))
+    .sort((a,b)=>(a.year||0)-(b.year||0)||String(a.title).localeCompare(String(b.title),"pt-BR"));
+}
+function cadernoContar(){
+  const o=cadernoOpcoes(),n=cadernoLivros(o).length;
+  const info=document.getElementById("cad-info"),bt=document.getElementById("pdf-btn-gerar");
+  if(info) info.textContent=n?`${n} ${n===1?"livro entrará":"livros entrarão"} no caderno, um por página, com capa e sumário.`:"Nenhum livro com esse conteúdo nesse período.";
+  if(bt){bt.disabled=!n;bt.style.opacity=n?"1":".5";bt.style.cursor=n?"pointer":"default";}
+}
+function gerarCaderno(){
+  const o=cadernoOpcoes(),lista=cadernoLivros(o);
+  if(!lista.length) return;
+  document.getElementById("pdf-opts-wrap")?.remove();
+  const nome=(document.getElementById("user-name")?.textContent||"").trim();
+  const periodo=o.ano||"Todos os anos";
+  const capa=`<div class="capa">
+    <div style="font-size:12px;letter-spacing:.25em;text-transform:uppercase;color:#999">Estante Virtual</div>
+    <h1 style="font-size:40px;margin:18px 0 10px;text-align:center">Caderno de Leituras</h1>
+    <div style="font-size:20px;color:#555">${escHtml(periodo)}</div>
+    ${nome?`<div style="font-size:15px;color:#777;margin-top:28px">${escHtml(nome)}</div>`:""}
+    <div style="font-size:13px;color:#999;margin-top:6px">${lista.length} ${lista.length===1?"livro":"livros"}</div>
+  </div>`;
+  const sumario=`<div class="sumario"><h2 style="font-size:22px;margin-bottom:16px">Sumário</h2><ol>${
+    lista.map(b=>`<li><span><b>${escHtml(b.title)}</b> <span style="color:#777">— ${escHtml(b.author||"")}${b.year?" ("+b.year+")":""}</span></span></li>`).join("")
+  }</ol></div>`;
+  pdfAbrir("Caderno de Leituras — "+periodo, capa+sumario+lista.map(b=>pdfSecaoLivro(b,o.resumo,o.notas)).join(""));
+}
+
+/* ── BUSCA EM ANOTAÇÕES E RESUMOS ── */
+var _buscaTermo="";
+function abrirBusca(){
+  const m=document.getElementById("busca-modal");
+  m.style.display="flex";
+  const inp=document.getElementById("busca-input");
+  inp.focus(); inp.select();
+  executarBusca();
+}
+function fecharBusca(){document.getElementById("busca-modal").style.display="none";}
+function buscaItens(){
+  const it=[];
+  books.forEach(b=>{
+    (Array.isArray(b.notas)?b.notas:[]).forEach(n=>it.push({b,tipo:"nota",ref:n.id,rotulo:"📝 "+(n.title||"Anotação"),titulo:n.title||"",texto:htmlParaTexto(n.text)}));
+    if(b.resenha&&String(b.resenha).trim()) it.push({b,tipo:"resenha",ref:0,rotulo:"📖 Resenha geral",titulo:"",texto:htmlParaTexto(b.resenha)});
+    (b.chapters||[]).filter(ch=>ch.summary&&ch.summary.trim()).forEach(ch=>it.push({b,tipo:"cap",ref:ch.n,rotulo:"📖 Resumo — Cap. "+ch.n+(ch.title?" — "+ch.title:""),titulo:ch.title||"",texto:htmlParaTexto(ch.summary)}));
+  });
+  return it;
+}
+function executarBusca(){
+  const q=document.getElementById("busca-input").value.trim();
+  const out=document.getElementById("busca-resultados"),cont=document.getElementById("busca-contagem");
+  _buscaTermo=q;
+  if(q.length<2){
+    cont.textContent="";
+    out.innerHTML=`<div style="padding:28px 8px;text-align:center;font-size:13px;color:var(--text3);line-height:1.7">Digite pelo menos 2 letras.<br>A busca olha todas as anotações, resenhas e resumos de capítulo, sem diferenciar acentos nem maiúsculas.</div>`;
+    return;
+  }
+  const nq=normStr(q),grupos=new Map();let total=0;
+  buscaItens().forEach(it=>{
+    const nt=normStr(it.texto);
+    let pos=nt.indexOf(nq),qtd=0,p=pos;
+    while(p!==-1){qtd++;p=nt.indexOf(nq,p+nq.length);}
+    const noTitulo=it.titulo&&normStr(it.titulo).includes(nq);
+    if(!qtd&&!noTitulo) return;
+    total++;
+    let trecho;
+    if(pos>=0){
+      const ini=Math.max(0,pos-70),fim=Math.min(it.texto.length,pos+nq.length+120);
+      trecho=(ini>0?"…":"")+escHtml(it.texto.slice(ini,pos))+"<mark>"+escHtml(it.texto.slice(pos,pos+nq.length))+"</mark>"+escHtml(it.texto.slice(pos+nq.length,fim))+(fim<it.texto.length?"…":"");
+    } else trecho=escHtml(it.texto.slice(0,180))+(it.texto.length>180?"…":"");
+    if(!grupos.has(it.b.id)) grupos.set(it.b.id,{b:it.b,itens:[]});
+    grupos.get(it.b.id).itens.push({...it,qtd,trecho});
+  });
+  cont.textContent=total?`${total} ${total===1?"resultado":"resultados"} em ${grupos.size} ${grupos.size===1?"livro":"livros"}`:"";
+  if(!total){out.innerHTML=`<div style="padding:28px 8px;text-align:center;font-size:13px;color:var(--text3)">Nada encontrado para “${escHtml(q)}”.</div>`;return;}
+  let h="";
+  grupos.forEach(g=>{
+    h+=`<div style="margin:14px 0 6px;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text3)">${escHtml(g.b.title)}<span style="font-weight:400;text-transform:none;letter-spacing:0"> · ${escHtml(g.b.author||"")}</span></div>`;
+    g.itens.forEach(it=>{
+      h+=`<div onclick="buscaAbrir(${g.b.id},'${it.tipo}',${it.ref})" style="padding:10px 12px;border:1px solid var(--border);border-radius:var(--r-xs);margin-bottom:6px;cursor:pointer;background:var(--surface)" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='var(--surface)'">
+        <div style="display:flex;justify-content:space-between;gap:8px;font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px"><span>${escHtml(it.rotulo)}</span>${it.qtd>1?`<span style="font-weight:400;color:var(--text3);white-space:nowrap">${it.qtd} ocorrências</span>`:""}</div>
+        <div style="font-size:12.5px;line-height:1.6;color:var(--text2)">${it.trecho}</div>
+      </div>`;
+    });
+  });
+  out.innerHTML=h;
+}
+function buscaAbrir(bookId,tipo,ref){
+  fecharBusca();
+  if(tipo==="nota"){
+    openPanel(bookId,"notas");
+    openEditor(bookId,ref);
+    setTimeout(()=>edDestacar(_buscaTermo),60);
+  } else if(tipo==="resenha"){
+    openPanel(bookId,"resumo");
+  } else {
+    openPrintView(bookId);
+  }
+}
+/* seleciona no editor a primeira ocorrência do termo buscado */
+function edDestacar(q){
+  if(!q) return;
+  const body=document.getElementById("editor-body"),nq=normStr(q);
+  const w=document.createTreeWalker(body,NodeFilter.SHOW_TEXT),nos=[];let txt="";
+  while(w.nextNode()){nos.push({n:w.currentNode,ini:txt.length});txt+=w.currentNode.nodeValue;}
+  const pos=normStr(txt).indexOf(nq); if(pos<0) return;
+  const fim=pos+nq.length;
+  const achar=i=>{for(let k=nos.length-1;k>=0;k--) if(nos[k].ini<=i&&nos[k].n.nodeValue.length) return nos[k]; return nos[0];};
+  const a=achar(pos),z=achar(fim-1);
+  try{
+    const r=document.createRange(); r.setStart(a.n,pos-a.ini); r.setEnd(z.n,fim-z.ini);
+    const s=window.getSelection(); s.removeAllRanges(); s.addRange(r);
+    a.n.parentElement?.scrollIntoView({block:"center"});
+  }catch(e){}
+}
+
+/* ── ESPAÇO NA NUVEM (limite de 1 MB por registro no Firebase) ── */
+const LIMITE_NUVEM=1048576;
+function tamanhoDados(obj){try{return new Blob([JSON.stringify(obj===undefined?{books,nextId}:obj)]).size;}catch(e){return 0;}}
+function fmtTam(n){return n>=1048576?(n/1048576).toLocaleString("pt-BR",{maximumFractionDigits:2})+" MB":Math.max(1,Math.round(n/1024)).toLocaleString("pt-BR")+" KB";}
+var _avisoEspaco=0;
+function verificarEspaco(){
+  const pct=tamanhoDados()/LIMITE_NUVEM*100;
+  if(pct>=95&&_avisoEspaco<95){_avisoEspaco=95;mostrarAviso("⚠ Sua estante já usa "+Math.round(pct)+"% do espaço na nuvem. Ao chegar em 100%, o app deixa de salvar. Veja Estatísticas → Espaço na nuvem e exporte um backup.","erro",true);}
+  else if(pct>=80&&_avisoEspaco<80){_avisoEspaco=80;mostrarAviso("Sua estante já usa "+Math.round(pct)+"% do espaço na nuvem. Os detalhes estão em Estatísticas → Espaço na nuvem.","alerta");}
+  return pct;
+}
+function avisoErroSalvar(e){
+  const pct=tamanhoDados()/LIMITE_NUVEM*100;
+  const motivo=pct>=100?"A estante passou do limite de 1 MB da nuvem.":"Verifique sua internet e tente de novo.";
+  mostrarAviso("⚠ Não foi possível salvar na nuvem. "+motivo+" Para não perder nada, exporte um backup em Estatísticas.","erro",true);
+}
+function avisoSalvouOk(){const el=document.getElementById("aviso-flutuante");if(el&&el.dataset.tipo==="erro-salvar")el.remove();}
+function mostrarAviso(msg,tipo,fixo){
+  let el=document.getElementById("aviso-flutuante");
+  if(!el){el=document.createElement("div");el.id="aviso-flutuante";document.body.appendChild(el);}
+  const c=tipo==="erro"?["#fdf0ee","#a93226","#e0a0a0"]:["#fff8e6","#7a5200","#e8c77a"];
+  el.dataset.tipo=(tipo==="erro"&&/salvar na nuvem/.test(msg))?"erro-salvar":tipo;
+  el.style.cssText=`position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:4000;width:max-content;max-width:min(560px,calc(100vw - 32px));background:${c[0]};color:${c[1]};border:1px solid ${c[2]};border-radius:10px;padding:12px 40px 12px 16px;font-size:13px;line-height:1.5;box-shadow:0 6px 24px rgba(0,0,0,.15);font-family:'DM Sans',sans-serif`;
+  el.innerHTML=escHtml(msg)+`<button onclick="this.parentElement.remove()" aria-label="Fechar" style="position:absolute;top:8px;right:10px;border:none;background:none;font-size:18px;line-height:1;cursor:pointer;color:inherit">×</button>`;
+  clearTimeout(el._t); if(!fixo) el._t=setTimeout(()=>el.remove(),9000);
+}
+function cardEspacoNuvem(){
+  const tam=tamanhoDados(),pct=tam/LIMITE_NUVEM*100,pv=Math.min(100,pct);
+  const cor=pct>=85?"#c0392b":pct>=60?"#d4a017":"var(--accent)";
+  const pctTxt=pct<1?"menos de 1%":Math.round(pct)+"%";
+  const maiores=books.map(b=>({t:b.title,s:tamanhoDados(b)})).sort((a,b)=>b.s-a.s).slice(0,3);
+  return `<div class="card" style="border:1px solid var(--border2)">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <span style="font-size:18px">☁️</span>
+      <div class="stat-section-title" style="margin-bottom:0">Espaço na nuvem</div>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px"><span><b>${pctTxt}</b> usado</span><span style="color:var(--text3)">${fmtTam(tam)} de 1 MB</span></div>
+    <div style="height:8px;border-radius:4px;background:var(--surface2);overflow:hidden;margin-bottom:12px"><div style="height:100%;width:${Math.max(pv,1)}%;background:${cor};border-radius:4px"></div></div>
+    <p style="font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:${maiores.length?"8px":"0"}">O Firebase guarda a estante inteira num único registro, com limite de 1 MB. Você recebe um aviso ao chegar em 80%.</p>
+    ${maiores.length?`<div style="font-size:12px;color:var(--text3)">Livros que mais ocupam: ${maiores.map(m=>escHtml(m.t)+" ("+fmtTam(m.s)+")").join(" · ")}</div>`:""}
+  </div>`;
+}
+
 function addNota(bookId){
   const title = prompt("Título da anotação:");
   if(title===null) return;
@@ -1338,6 +1844,103 @@ updateTopStats();populateFilters();renderShelf();
   </div>
 </div>
 
+<!-- ── BUSCA ── -->
+<div id="busca-modal" onclick="if(event.target===this)fecharBusca()" style="display:none;position:fixed;inset:0;z-index:2500;background:rgba(0,0,0,.45);align-items:flex-start;justify-content:center;padding:8vh 16px 16px">
+  <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r);width:100%;max-width:640px;max-height:82vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,.2);font-family:'DM Sans',sans-serif">
+    <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--border);background:var(--surface)">
+      <span style="font-size:16px">🔍</span>
+      <input id="busca-input" type="search" autocomplete="off" oninput="executarBusca()" onkeydown="if(event.key==='Enter'){const f=document.querySelector('#busca-resultados [onclick^=buscaAbrir]');if(f)f.click();}" placeholder="Buscar em anotações, resenhas e resumos…" style="flex:1;border:none;outline:none;background:transparent;font-family:inherit;font-size:15px;color:var(--text)">
+      <button onclick="fecharBusca()" style="border:1px solid var(--border);background:var(--surface2);color:var(--text2);border-radius:var(--r-xs);font-size:11px;padding:3px 8px;cursor:pointer;font-family:inherit">Esc</button>
+    </div>
+    <div id="busca-contagem" style="padding:6px 16px 0;font-size:11px;color:var(--text3)"></div>
+    <div id="busca-resultados" style="overflow-y:auto;padding:0 14px 14px"></div>
+  </div>
+</div>
+
+<!-- ── EDITOR FULLSCREEN ── -->
+<div id="editor-modal" style="display:none;position:fixed;inset:0;z-index:2000;background:var(--bg);flex-direction:column">
+  <div style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0">
+    <span id="editor-modal-title" style="font-size:13px;font-weight:600;color:var(--text);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></span>
+    <button onclick="editorSalvarSemFechar()" title="Salvar sem fechar (Ctrl+S)" style="font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;padding:6px 12px;border-radius:var(--r-xs);border:1px solid var(--accent);background:var(--accent-bg);color:var(--accent);cursor:pointer">💾 Salvar</button>
+    <button onclick="editorSave()" style="font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;padding:6px 18px;border-radius:var(--r-xs);border:none;background:var(--accent);color:#fff;cursor:pointer">✓ Salvar e fechar</button>
+    <button onclick="editorClose()" style="font-family:'DM Sans',sans-serif;font-size:12px;padding:6px 12px;border-radius:var(--r-xs);border:1px solid var(--border);background:var(--surface2);color:var(--text2);cursor:pointer">✕ Cancelar</button>
+  </div>
+  <!-- barra de formatação completa -->
+  <div style="display:flex;flex-wrap:wrap;gap:3px;padding:8px 16px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;align-items:center">
+    <!-- Desfazer/Refazer -->
+    <button class="efmt" onmousedown="event.preventDefault()" onclick="edCmd('undo')" title="Desfazer (Ctrl+Z)">↩</button>
+    <button class="efmt" onmousedown="event.preventDefault()" onclick="edCmd('redo')" title="Refazer (Ctrl+Y)">↪</button>
+    <span class="efmt-sep"></span>
+    <!-- Parágrafo/Títulos -->
+    <select class="efmt-sel" onchange="edCmd('formatBlock',this.value);this.value=''" title="Estilo do parágrafo">
+      <option value="" disabled selected>Estilo</option>
+      <option value="p">Normal</option>
+      <option value="h1">Título 1</option>
+      <option value="h2">Título 2</option>
+      <option value="h3">Título 3</option>
+      <option value="blockquote">Citação</option>
+    </select>
+    <!-- Fonte tamanho -->
+    <select class="efmt-sel" onchange="edCmd('fontSize',this.value);this.value=''" title="Tamanho da fonte">
+      <option value="" disabled selected>Tam.</option>
+      <option value="1">Pequeno</option>
+      <option value="3">Normal</option>
+      <option value="4">Médio</option>
+      <option value="5">Grande</option>
+      <option value="6">Maior</option>
+    </select>
+    <span class="efmt-sep"></span>
+    <!-- Formatação básica -->
+    <button class="efmt" onmousedown="event.preventDefault()" onclick="edCmd('bold')" title="Negrito (Ctrl+B)"><b>N</b></button>
+    <button class="efmt" onmousedown="event.preventDefault()" onclick="edCmd('italic')" title="Itálico (Ctrl+I)"><i>I</i></button>
+    <button class="efmt" onmousedown="event.preventDefault()" onclick="edCmd('underline')" title="Sublinhado (Ctrl+U)"><u>S</u></button>
+    <button class="efmt" onmousedown="event.preventDefault()" onclick="edCmd('strikeThrough')" title="Tachado"><s>T</s></button>
+    <button class="efmt" id="btn-citacao" onmousedown="event.preventDefault()" onclick="edToggleCitacao()" title="Citação literal (clique de novo para voltar ao normal)"><span style="font-family:Georgia,serif;font-size:15px;line-height:1">❝</span> Citação</button>
+    <button class="efmt" id="btn-pagina" onmousedown="event.preventDefault()" onclick="edPaginaCitacao()" title="Página da citação (coloque o cursor dentro de uma citação)">Pág.</button>
+    <span class="efmt-sep"></span>
+    <!-- Alinhamento -->
+    <button class="efmt" onmousedown="event.preventDefault()" onclick="edCmd('justifyLeft')" title="Alinhar à esquerda">⬅</button>
+    <button class="efmt" onmousedown="event.preventDefault()" onclick="edCmd('justifyCenter')" title="Centralizar">☰</button>
+    <button class="efmt" onmousedown="event.preventDefault()" onclick="edCmd('justifyRight')" title="Alinhar à direita">➡</button>
+    <button class="efmt" onmousedown="event.preventDefault()" onclick="edCmd('justifyFull')" title="Justificar">⬛</button>
+    <span class="efmt-sep"></span>
+    <!-- Listas -->
+    <button class="efmt" onmousedown="event.preventDefault()" onclick="edCmd('insertUnorderedList')" title="Lista com marcadores">• Lista</button>
+    <button class="efmt" onmousedown="event.preventDefault()" onclick="edCmd('insertOrderedList')" title="Lista numerada">1. Lista</button>
+    <button class="efmt" onmousedown="event.preventDefault()" onclick="edCmd('indent')" title="Aumentar recuo">→|</button>
+    <button class="efmt" onmousedown="event.preventDefault()" onclick="edCmd('outdent')" title="Diminuir recuo">|←</button>
+    <span class="efmt-sep"></span>
+    <!-- Cor do texto -->
+    <label class="efmt" title="Cor do texto" style="cursor:pointer;gap:2px">
+      A <input type="color" style="width:18px;height:18px;border:none;padding:0;cursor:pointer;border-radius:3px" onchange="edCmd('foreColor',this.value)">
+    </label>
+    <!-- Cor de fundo -->
+    <label class="efmt" title="Cor de destaque" style="cursor:pointer;gap:2px">
+      🖍 <input type="color" value="#FFFF00" style="width:18px;height:18px;border:none;padding:0;cursor:pointer;border-radius:3px" onchange="edCmd('hiliteColor',this.value)">
+    </label>
+    <span class="efmt-sep"></span>
+    <!-- Linha horizontal / limpar formatação -->
+    <button class="efmt" onmousedown="event.preventDefault()" onclick="edCmd('insertHorizontalRule')" title="Linha separadora">—</button>
+    <button class="efmt" onmousedown="event.preventDefault()" onclick="edCmd('removeFormat')" title="Limpar formatação">✖ fmt</button>
+  </div>
+  <!-- área editável -->
+  <div id="editor-scroll" onclick="if(event.target===this)document.getElementById('editor-body').focus()"
+    style="flex:1;overflow-y:auto;background:#e4e2dd;padding:32px 16px 64px">
+    <div id="editor-body" contenteditable="true"
+      style="background:#fff;color:#1a1a1a;max-width:816px;min-height:1056px;margin:0 auto;padding:72px 88px;box-shadow:0 1px 3px rgba(0,0,0,.12),0 6px 24px rgba(0,0,0,.08);font-family:'EB Garamond',Georgia,serif;font-size:16px;line-height:1.8;outline:none;box-sizing:border-box"
+      oninput="edOnInput()">
+    </div>
+  </div>
+  <div id="editor-footer" style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:6px 16px;border-top:1px solid var(--border);background:var(--surface);font-size:11px;color:var(--text3);flex-shrink:0">
+    <span id="ed-contagem"></span>
+    <span id="ed-status" style="text-align:right"></span>
+  </div>
+</div>
+<style>
+@media(max-width:640px){.tabs{padding:0 10px}.tab{padding:11px 11px}.tab-busca-txt{display:none}}
+@media(max-width:700px){#editor-scroll{padding:12px 6px 40px!important}#editor-body{padding:28px 22px!important;min-height:80vh!important}}
+</style>
+
 <div class="overlay" id="modal-zero">
   <div class="modal" style="width:320px">
     <h3 style="color:#c0392b">Zerar todos os dados</h3>
@@ -1378,11 +1981,16 @@ window.saveData = function(){
   if(!currentUser) return;
   clearTimeout(_saveTimer);
   _saveTimer = setTimeout(async ()=>{
+    if(window.verificarEspaco) window.verificarEspaco();
     try{
       await setDoc(doc(db,"usuarios",currentUser.uid), {books: window.books||[], nextId: window.nextId||4});
       const el = document.getElementById("save-ind");
       if(el){el.classList.add("show");clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove("show"),2000);}
-    }catch(e){ console.error("Erro ao salvar:",e); }
+      if(window.avisoSalvouOk) window.avisoSalvouOk();
+    }catch(e){
+      console.error("Erro ao salvar:",e);
+      if(window.avisoErroSalvar) window.avisoErroSalvar(e);
+    }
   }, 800);
 };
 
